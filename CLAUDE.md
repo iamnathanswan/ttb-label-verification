@@ -1,84 +1,163 @@
-# CLAUDE.md — TTB Label Verification Prototype
+# CLAUDE.md
 
-AI-assisted verification of alcohol beverage labels against TTB requirements. Take-home
-assessment for IT Specialist (AI), Treasury Common Services Center. Due 2026-09-23.
+Working agreement for this repository. It records the constraints, the one architectural
+invariant, and the mistakes that are easy to make in this problem domain, so that each
+session starts from the same footing rather than rediscovering them.
 
-## Read first
+**Project.** AI-assisted verification of alcohol beverage labels against TTB requirements.
+Take-home assessment for IT Specialist (AI), Treasury Common Services Center.
 
-- `docs/requirements.md` — 58 requirements with stable IDs. The source of truth.
-- `docs/plan.md` — architecture and the 8 numbered decisions (D1–D8).
-- `docs/tasks.md` — phased execution, each task carrying its REQ IDs.
-- `docs/traceability.md` — coverage matrix. A requirement without a passing test is not done.
+---
 
-Run `python3 docs/check_coverage.py` after editing any spec doc. It must exit 0.
+## Orientation
 
-## Architecture invariant (D2)
+| Document | What it holds |
+|---|---|
+| `docs/requirements.md` | 58 requirements with stable IDs. The source of truth. |
+| `docs/plan.md` | Architecture, data contracts, decisions D1–D8, risks. |
+| `docs/tasks.md` | Seven phases, 45 tasks, each carrying its REQ IDs. |
+| `docs/traceability.md` | Coverage matrix. A requirement without a passing test is not done. |
+
+`python3 docs/check_coverage.py` cross-checks requirement IDs across the spec documents and
+must exit 0. Run it after editing any of them.
+
+## The invariant (D2)
 
 **The model extracts. Code judges.**
 
-The only non-deterministic call in the system returns a validated `LabelFields` Pydantic
-object. Every compliance determination is a pure function over that object — no network,
-no I/O, no model call. Do not ask the model for a verdict, a score, or a pass/fail. If a
-rule feels hard to express in code, that is a signal to reread the CFR, not to delegate it
-to the model.
+Exactly one call in this system is non-deterministic, and it returns a validated
+`LabelFields` object. Every compliance determination is a pure function over that object —
+no network, no I/O, no second model call.
 
-## Hard constraints — do not violate without changing the spec first
+This is not stylistic. A compliance decision has to be reproducible, auditable, and
+explainable by citation, and a regulator's question is "which rule, and what does it say"
+rather than "what did the model think". It also means the rule suite runs in milliseconds
+with no API key.
+
+Do not ask the model for a verdict, a score, or a pass/fail. If a rule seems hard to
+express in code, that is a signal to reread the CFR, not to delegate the judgment.
+
+## Why three states, not two
+
+Results are `PASS`, `REVIEW`, or `FAIL` — never a boolean. The tool exists to clear routine
+matching off a 47-person team's desk, not to make final determinations. Two failure modes
+matter and they pull in opposite directions:
+
+- Silently passing something a human would have caught defeats the purpose of review.
+- Hard-failing something obviously fine ("STONE'S THROW" against "Stone's Throw") makes the
+  tool worse than the eyeball it replaced, and it will be abandoned. A previous vendor
+  pilot was abandoned within weeks.
+
+`REVIEW` is therefore the honest answer whenever the rule is satisfied in substance but not
+in form, or whenever the evidence available from a photograph is insufficient to decide.
+Every `REVIEW` and `FAIL` shows the expected value, the observed value, and the citation.
+
+## Hard constraints
+
+Changing any of these means changing `docs/requirements.md` first.
 
 | Constraint | ID | Note |
 |---|---|---|
-| ≈5 s per label | `PRF-01` | Binding. Measure, never assume. Batch streams; first result inside the budget. |
-| Three-state results | `MCH-04` | `PASS` / `REVIEW` / `FAIL`. Never a bare boolean. Normalisation-only differences are `REVIEW`. |
-| Stateless | `OPS-01` | Nothing written to disk or a database. Uploads live in memory for the request. |
-| Section 508 / WCAG AA | `UX-04..06` | Status by icon **and** word, never colour alone. Keyboard operable. |
-| No secrets in client or repo | `OPS-04` | API key is a server-side env var. |
-| Advisory-only physical checks | `VAL-06..09`, D6 | A photograph has no millimetre scale. These return `REVIEW`, never `FAIL`. |
+| ≈5 s per label | `PRF-01` | Binding. Measure; never assume. Batch streams — the first result lands inside the budget. |
+| Three states | `MCH-04` | See above. |
+| Stateless | `OPS-01` | Nothing reaches disk or a database. Uploads live in memory for the request. |
+| Section 508 / WCAG 2.1 AA | `UX-04..06` | Status by icon **and** word, never colour alone. Fully keyboard operable. |
+| No secrets in the client or the repo | `OPS-04` | Server-side environment variable only. |
+| Physical measurements are advisory | `VAL-06..09`, D6 | A photograph carries no millimetre scale. These return `REVIEW`, never `FAIL`. |
+
+## Domain pitfalls
+
+These have a real cost and are easy to get backwards.
+
+**Normalisation policy is deliberately opposite in two adjacent modules.**
+`rules/warning.py` (`VAL-01`) compares the warning against §16.21 after whitespace
+normalisation *only* — no case folding, no punctuation stripping. The regulation demands
+exactness, and "Government Warning" in title case is a genuine rejection. Meanwhile
+`rules/match.py` (`MCH-02`) *does* fold case, punctuation, whitespace, and diacritics,
+because a brand-name casing difference is not a discrepancy. Do not share a normalisation
+helper between them; the requirements conflict on purpose.
+
+**Proof is not alcohol content.** §5.65 requires a statement as percentage by volume;
+degrees proof may appear *in addition* but never instead. 90 proof present with no ABV is a
+failure of `VAL-11`, not a 45% match.
+
+**Net contents feeds the warning rules.** The §16.22(b) minimum type size depends on
+container volume, so `net_contents_ml` must be parsed to a number and unit-normalised
+(fl oz → mL) before `VAL-08` can select a threshold. A label whose net contents failed to
+extract cannot have its type size evaluated — return `REVIEW`, not a guess.
+
+**The ABV tolerance is for comparison only.** §5.65(c) allows ±0.3 percentage points
+between stated and actual content, which governs `MCH-03` when matching a label against an
+application. It is not licence to round, reformat, or accept a missing ABV statement.
+
+**Beverage type gates which rules apply.** Parts 4 (wine) and 7 (malt beverages) differ
+from Part 5 (distilled spirits). For non-spirits, run the Part 16 warning checks — which
+are universal — and mark type-specific fields unverified rather than failing them
+(`docs/requirements.md` §J-4).
+
+## Regulatory sources
+
+Retrieved from GPO; constants live in `app/rules/constants.py` with citations inline.
+
+| Citation | Governs |
+|---|---|
+| 27 CFR §16.21 | Warning text, verbatim; "separate and apart from all other information" |
+| 27 CFR §16.22(a)(2) | `GOVERNMENT WARNING` in caps and bold; **remainder may not be bold** |
+| 27 CFR §16.22(a)(4), (b) | Characters per inch; minimum type size by container volume |
+| 27 CFR §5.63(a) | Brand name, class/type, and ABV within the same field of vision |
+| 27 CFR §5.65 | ABV as percentage by volume; ±0.3 point tolerance |
+| 27 CFR §5.66(b) | Producer name preceded by a function phrase ("bottled by", "distilled by", …) |
 
 ## Stack
 
-Python 3.11+ · FastAPI + uvicorn · Pydantic · `anthropic` SDK · Pillow · pytest · ruff
-React + Vite (served by FastAPI as static files — one service, one URL, per D1)
-Docker → Render
+Python 3.11+ · FastAPI + uvicorn · Pydantic · `anthropic` · Pillow · pytest · ruff
+React + Vite, built and served by FastAPI as static files — one service, one URL (D1)
+Docker → Railway
 
 ## Model configuration
 
-`claude-opus-5` via `client.messages.parse(output_format=LabelFields)`.
+`claude-opus-5` through `client.messages.parse(output_format=LabelFields)`.
 
 - `output_config={"effort": "low"}` — extraction is perception, not reasoning. Thinking is
-  **on by default** on Opus 5; low effort trims depth without the failure modes of disabling it.
-- `max_tokens` ≈ 2000 — output is one small JSON object.
-- `cache_control={"type": "ephemeral"}` on the system prompt; verify `usage.cache_read_input_tokens > 0`.
-- `budget_tokens` is **removed** on Opus 5 (400 error). Assistant prefill is also removed.
-- Escape hatch if over budget: fast mode (`speed="fast"`, beta `fast-mode-2026-02-01`).
-  Claude API only — unavailable on Foundry, which trades against `OPS-03`. Document if used.
+  on by default on Opus 5; low effort trims depth without the failure modes of disabling it.
+- `max_tokens` ≈ 2000 — the output is one small JSON object.
+- `cache_control={"type": "ephemeral"}` on the system prompt, which is byte-identical across
+  every label in a batch. Verify with `usage.cache_read_input_tokens`.
+- `budget_tokens` is **removed** on Opus 5 and returns 400. Assistant prefill is also removed.
+- If the latency budget is missed: fast mode (`speed="fast"`, beta `fast-mode-2026-02-01`).
+  Claude API only — unavailable on Microsoft Foundry, which trades against the `OPS-03`
+  Azure production path. Document the trade-off if adopted.
 
-Never call the SDK outside `app/providers/`. `ExtractionProvider` is the seam (`OPS-02`).
+The SDK is called only from `app/providers/`. `ExtractionProvider` is the seam (`OPS-02`),
+and `StubProvider` is what the test suite runs against.
 
 ## Conventions
 
-- Every rule function names its REQ ID and its CFR citation in the docstring.
-- Regulatory constants live in `app/rules/constants.py` with a citation comment. Never inline
-  the warning text or a threshold at a call site.
-- Tests are named for the requirement they cover: `test_val_04_body_not_bold`.
-- Rules tests must not touch the network. Use `StubProvider`.
+- Every rule function names its REQ ID and CFR citation in its docstring.
+- Regulatory constants live in `app/rules/constants.py`. Never inline a threshold or the
+  warning text at a call site.
+- Tests are named for the requirement: `test_val_04_warning_body_not_bold`.
+- Rule tests never touch the network.
 - Commit messages reference REQ IDs where applicable.
-- Prefer a boring, readable implementation. This is judged on code quality, and it is a
-  prototype — cleverness that needs explaining is a liability.
+- Prefer the boring implementation. This is a prototype judged on code quality; cleverness
+  that needs explaining is a liability.
 
 ## Commands
 
 ```bash
-uvicorn app.main:app --reload     # API + UI
-cd web && npm run dev             # frontend only, hot reload
-pytest -q                         # rules + API tests, no network
+uvicorn app.main:app --reload            # API + UI
+cd web && npm run dev                    # frontend only, hot reload
+pytest -q                                # rules + API, no network
 ruff check . && ruff format .
-python3 docs/check_coverage.py    # spec cross-reference — must exit 0
+python3 docs/check_coverage.py           # spec cross-reference; must exit 0
 docker build -t ttb . && docker run -p 8000:8000 --env-file .env ttb
+railway up                               # deploy
 ```
 
-## Non-goals (`docs/requirements.md` §I)
+## Non-goals
 
-COLA integration · authentication · persistence · FedRAMP artifacts · formula and
-ingredient review · full Part 4 (wine) and Part 7 (malt beverage) rule sets.
+COLA integration · authentication · persistence · FedRAMP artifacts · formula and ingredient
+review · complete Part 4 and Part 7 rule sets.
 
-Do not add these. If something appears to require one, it is a misreading of the spec —
-check §I before building.
+These are excluded deliberately (`docs/requirements.md` §I). If a task appears to require
+one, that is a misreading of the specification — check §I before building anything.
