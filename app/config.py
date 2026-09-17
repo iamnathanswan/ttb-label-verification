@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     anthropic_api_key: str = ""
+    # Org-scoped keys must name a workspace; workspace-scoped keys need not.
+    anthropic_workspace_id: str = ""
 
     # OPS-05 — public endpoint with a funded key behind it
     max_upload_bytes: int = 10 * 1024 * 1024

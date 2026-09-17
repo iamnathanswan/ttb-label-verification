@@ -116,17 +116,25 @@ Docker → Railway
 
 ## Model configuration
 
-`claude-opus-5` through `client.messages.parse(output_format=LabelFields)`.
+Model selection is **open** — see `docs/perf.md`. Opus 5 measures 5,590 ms median against
+a 5,000 ms budget; Sonnet 5 measures 4,220 ms at identical accuracy on the discriminating
+typographic fixtures.
 
-- `output_config={"effort": "low"}` — extraction is perception, not reasoning. Thinking is
-  on by default on Opus 5; low effort trims depth without the failure modes of disabling it.
+- **Constrained decoding is not used.** `messages.parse()` against `LabelFields` exceeded
+  120 s per label. The schema is supplied to the model as documentation inside the cached
+  system prompt, and the response is validated with `LabelFields.model_validate_json()`.
+  Shape is still guaranteed; only the decoding constraint is gone.
+- `output_config={"effort": "low"}` — extraction is perception, not reasoning.
 - `max_tokens` ≈ 2000 — the output is one small JSON object.
 - `cache_control={"type": "ephemeral"}` on the system prompt, which is byte-identical across
   every label in a batch. Verify with `usage.cache_read_input_tokens`.
+- The system prompt must **never** contain the §16.21 warning text. Showing the model the
+  canonical wording invites it to report the canonical wording, silently repairing the exact
+  defects `VAL-01` exists to catch. The model transcribes; code compares.
 - `budget_tokens` is **removed** on Opus 5 and returns 400. Assistant prefill is also removed.
-- If the latency budget is missed: fast mode (`speed="fast"`, beta `fast-mode-2026-02-01`).
-  Claude API only — unavailable on Microsoft Foundry, which trades against the `OPS-03`
-  Azure production path. Document the trade-off if adopted.
+- Latency is dominated by output generation, not input size or reasoning depth. Shrinking the
+  image or disabling thinking measurably did **not** help; both were tried. Fast mode returns
+  429 on this workspace, so it is not an available lever.
 
 The SDK is called only from `app/providers/`. `ExtractionProvider` is the seam (`OPS-02`),
 and `StubProvider` is what the test suite runs against.

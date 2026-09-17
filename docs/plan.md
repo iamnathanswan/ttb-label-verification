@@ -112,7 +112,7 @@ of the text block.
 |---|---|---|
 | `output_config={"effort": "low"}` | low | Extraction is perception, not reasoning. On Opus 5 thinking is **on by default**; low effort trims depth without disabling it. |
 | `max_tokens` | ~2000 | Output is one small JSON object. |
-| `cache_control={"type": "ephemeral"}` | on | System prompt embeds the §16.21 text and extraction instructions — byte-identical across every label in a batch. Verify with `usage.cache_read_input_tokens`. |
+| `cache_control={"type": "ephemeral"}` | on | System prompt carries extraction instructions and the target schema — byte-identical across every label in a batch. It deliberately excludes the §16.21 text; see below. Verify with `usage.cache_read_input_tokens`. |
 | image longest edge | ≤1600 px | Label text stays legible; input tokens and upload time drop sharply (`PRF-04`). |
 
 `budget_tokens` is removed on Opus 5 (400 error) — not used. Prefill is likewise removed;

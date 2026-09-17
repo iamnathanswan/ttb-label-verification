@@ -1,0 +1,63 @@
+{
+  "compliant_bourbon.png": {
+    "note": "Fully compliant distilled spirits label. Baseline.",
+    "expect_overall": "PASS"
+  },
+  "warning_missing.png": {
+    "note": "No government warning at all.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-01"
+    ]
+  },
+  "warning_title_case.png": {
+    "note": "Heading in title case, not capitals. Jenny rejected one of these.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-02"
+    ]
+  },
+  "warning_body_bold.png": {
+    "note": "Entire warning bolded. \u00a716.22(a)(2) forbids bolding the remainder.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-04"
+    ]
+  },
+  "warning_heading_not_bold.png": {
+    "note": "Heading in capitals but not bold.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-03"
+    ]
+  },
+  "abv_proof_only.png": {
+    "note": "Proof stated without percent by volume. \u00a75.65 requires ABV.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-11"
+    ]
+  },
+  "producer_no_function_phrase.png": {
+    "note": "Producer name without 'bottled by' etc. \u00a75.66(b).",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-12"
+    ]
+  },
+  "small_bottle_50ml.png": {
+    "note": "Miniature. Selects the 1 mm type-size threshold under \u00a716.22(b).",
+    "expect_overall": "REVIEW"
+  },
+  "imported_no_country.png": {
+    "note": "Imported product with no country of origin. \u00a75.69.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-13"
+    ]
+  },
+  "warning_not_separated.png": {
+    "note": "Warning runs into surrounding text; \u00a716.21 requires separation.",
+    "expect_overall": "REVIEW"
+  }
+}
