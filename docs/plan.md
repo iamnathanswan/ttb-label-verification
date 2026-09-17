@@ -75,23 +75,23 @@ model handed to the API as the structured-output format, so the schema is declar
 class LabelFields(BaseModel):
     brand_name: str | None
     class_type: str | None
-    alcohol_content_pct: float | None      # VAL-11 — percent by volume
-    alcohol_content_proof: float | None    # optional per §5.65(b)(1)(i)
-    net_contents_ml: float | None          # normalised to mL for VAL-08
+    alcohol_content_pct: float | None  # VAL-11 — percent by volume
+    alcohol_content_proof: float | None  # optional per §5.65(b)(1)(i)
+    net_contents_ml: float | None  # normalised to mL for VAL-08
     net_contents_raw: str | None
     producer_name: str | None
     producer_address: str | None
-    producer_function_phrase: str | None   # VAL-12 — "bottled by", "distilled by", ...
+    producer_function_phrase: str | None  # VAL-12 — "bottled by", "distilled by", ...
     country_of_origin: str | None
-    warning_text: str | None               # verbatim, case preserved (EXT-07)
-    warning_heading_is_caps: bool | None   # VAL-02
-    warning_heading_is_bold: bool | None   # VAL-03
-    warning_body_is_bold: bool | None      # VAL-04
-    warning_visually_separated: bool | None# VAL-05
-    same_field_of_vision: bool | None      # VAL-10
-    beverage_type: Literal["distilled_spirits","wine","malt_beverage","unknown"]
+    warning_text: str | None  # verbatim, case preserved (EXT-07)
+    warning_heading_is_caps: bool | None  # VAL-02
+    warning_heading_is_bold: bool | None  # VAL-03
+    warning_body_is_bold: bool | None  # VAL-04
+    warning_visually_separated: bool | None  # VAL-05
+    same_field_of_vision: bool | None  # VAL-10
+    beverage_type: Literal["distilled_spirits", "wine", "malt_beverage", "unknown"]
     image_legible: bool
-    field_confidence: dict[str, float]     # EXT-08
+    field_confidence: dict[str, float]  # EXT-08
 ```
 
 `CheckResult` carries `id` (the REQ ID), `status`, `detail`, `expected`, `observed`, and

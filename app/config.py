@@ -1,0 +1,20 @@
+"""Runtime settings. Limits exist to protect a publicly reachable endpoint (OPS-05)."""
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    anthropic_api_key: str = ""
+
+    # OPS-05 — public endpoint with a funded key behind it
+    max_upload_bytes: int = 10 * 1024 * 1024
+    max_batch_files: int = 300  # BAT-02
+    extraction_concurrency: int = 8  # BAT-06
+
+    # PRF-04 — downscale before the model call
+    max_image_edge_px: int = 1600
+
+
+settings = Settings()

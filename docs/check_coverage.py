@@ -1,32 +1,51 @@
 #!/usr/bin/env python3
-"""Verify requirement IDs are consistent across the spec documents.
+"""Cross-check requirement IDs across the specification documents.
 
-Expands range notation (EXT-01..08) so coverage is measured accurately.
-Run from the repo root: python3 docs/check_coverage.py
+Expands range notation (EXT-01..08) so coverage is measured accurately rather
+than by literal string match. Exits non-zero if any ID is referenced but not
+defined, or defined-and-buildable but not covered by a task.
+
+Usage: python3 docs/check_coverage.py   (from the repository root)
 """
-import re, io, sys
 
-def expand(text):
-    ids = set()
-    for pre, lo, hi in re.findall(r'\b([A-Z]{3})-(\d{2})\.\.(\d{2})\b', text):
-        ids.update('%s-%02d' % (pre, n) for n in range(int(lo), int(hi) + 1))
-    ids.update(re.findall(r'\b[A-Z]{3}-\d{2}\b', text))
+import re
+import sys
+from pathlib import Path
+
+ID = r"[A-Z]{3}-\d{2}"
+DOCS = Path(__file__).parent
+
+
+def expand(text: str) -> set[str]:
+    """Collect requirement IDs, expanding `PRE-01..08` ranges."""
+    ids = set(re.findall(rf"\b{ID}\b", text))
+    for prefix, lo, hi in re.findall(r"\b([A-Z]{3})-(\d{2})\.\.(\d{2})\b", text):
+        ids.update(f"{prefix}-{n:02d}" for n in range(int(lo), int(hi) + 1))
     return ids
 
-req   = io.open('docs/requirements.md', encoding='utf-8').read()
-tasks = io.open('docs/tasks.md', encoding='utf-8').read()
-plan  = io.open('docs/plan.md', encoding='utf-8').read()
 
-defined   = set(re.findall(r'^\| ([A-Z]{3}-\d{2}) \|', req, re.M))
-buildable = {i for i in defined if not i.startswith('OOS')}
-in_tasks, in_plan = expand(tasks), expand(plan)
+def main() -> int:
+    requirements = (DOCS / "requirements.md").read_text(encoding="utf-8")
+    tasks = (DOCS / "tasks.md").read_text(encoding="utf-8")
+    plan = (DOCS / "plan.md").read_text(encoding="utf-8")
 
-phantom   = (in_tasks | in_plan) - defined
-uncovered = buildable - in_tasks
+    defined = set(re.findall(rf"^\| ({ID}) \|", requirements, re.M))
+    buildable = {i for i in defined if not i.startswith("OOS")}
+    referenced = expand(tasks) | expand(plan)
 
-print('requirements defined : %d (%d buildable, %d out-of-scope)'
-      % (len(defined), len(buildable), len(defined) - len(buildable)))
-print('covered by a task    : %d / %d' % (len(buildable & in_tasks), len(buildable)))
-print('phantom IDs          :', sorted(phantom) or 'none')
-print('uncovered            :', sorted(uncovered) or 'none')
-sys.exit(1 if (phantom or uncovered) else 0)
+    phantom = sorted(referenced - defined)
+    uncovered = sorted(buildable - expand(tasks))
+
+    print(
+        f"requirements defined : {len(defined)} "
+        f"({len(buildable)} buildable, {len(defined) - len(buildable)} out-of-scope)"
+    )
+    print(f"covered by a task    : {len(buildable & expand(tasks))} / {len(buildable)}")
+    print(f"phantom IDs          : {phantom or 'none'}")
+    print(f"uncovered            : {uncovered or 'none'}")
+
+    return 1 if (phantom or uncovered) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
