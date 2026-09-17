@@ -20,7 +20,7 @@ from app.config import settings
 from app.models import LabelFields
 from app.providers.base import ExtractionError, ExtractionProvider
 
-MODEL = "claude-opus-5"
+MODEL = "claude-sonnet-5"  # see docs/perf.md; override with ANTHROPIC_MODEL
 MAX_TOKENS = 2000
 
 SYSTEM_PROMPT = """\
@@ -104,7 +104,7 @@ class AnthropicProvider(ExtractionProvider):
     is byte-identical for every label in a batch.
     """
 
-    def __init__(self, api_key: str | None = None, model: str = MODEL):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         key = api_key or settings.anthropic_api_key
         if not key:
             raise ExtractionError("No ANTHROPIC_API_KEY configured on the server.")
@@ -112,7 +112,7 @@ class AnthropicProvider(ExtractionProvider):
             {"anthropic-workspace-id": settings.anthropic_workspace_id} if settings.anthropic_workspace_id else None
         )
         self._client = anthropic.AsyncAnthropic(api_key=key, default_headers=headers)
-        self._model = model
+        self._model = model or settings.anthropic_model or MODEL
 
     async def extract(self, image_bytes: bytes, media_type: str) -> tuple[LabelFields, dict[str, int]]:
         started = time.perf_counter()

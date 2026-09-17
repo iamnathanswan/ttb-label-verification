@@ -44,9 +44,18 @@ async def main(runs: int) -> int:
     finally:
         await provider.aclose()
 
-    median = statistics.median(timings)
-    print(f"\nmedian {median:.0f} ms   min {min(timings):.0f}   max {max(timings):.0f}   budget {BUDGET_MS}")
-    print("PRF-01:", "PASS" if median <= BUDGET_MS else "FAIL")
+    ordered = sorted(timings)
+    p50 = statistics.median(ordered)
+    # Nearest-rank p95; with few samples this is simply the slowest run.
+    p95 = ordered[min(len(ordered) - 1, max(0, round(0.95 * len(ordered)) - 1))]
+    over = sum(1 for x in timings if x > BUDGET_MS)
+    print(
+        f"\nn={len(timings)}  p50 {p50:.0f} ms  p95 {p95:.0f} ms  "
+        f"min {ordered[0]:.0f}  max {ordered[-1]:.0f}  budget {BUDGET_MS}"
+    )
+    print(f"over budget: {over}/{len(timings)} runs")
+    print("PRF-01 (p50):", "PASS" if p50 <= BUDGET_MS else "FAIL")
+    print("PRF-01 (p95):", "PASS" if p95 <= BUDGET_MS else "FAIL")
 
     if first:
         print("\nextracted:")
@@ -59,7 +68,7 @@ async def main(runs: int) -> int:
             print(f"  {name:34s} {getattr(first, name)!r}")
         print(f"\n  warning_text: {first.warning_text!r}")
 
-    return 0 if median <= BUDGET_MS else 1
+    return 0 if p50 <= BUDGET_MS else 1
 
 
 if __name__ == "__main__":

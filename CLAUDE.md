@@ -116,9 +116,10 @@ Docker → Railway
 
 ## Model configuration
 
-Model selection is **open** — see `docs/perf.md`. Opus 5 measures 5,590 ms median against
-a 5,000 ms budget; Sonnet 5 measures 4,220 ms at identical accuracy on the discriminating
-typographic fixtures.
+`claude-sonnet-5`, overridable via `ANTHROPIC_MODEL`. Chosen on measured latency against a
+binding requirement, not cost: Opus 5 missed the budget at 5,590 ms, Sonnet 5 meets it at
+p50 4,185 ms / p95 4,242 ms with identical accuracy on the discriminating typographic
+fixtures (`docs/perf.md`).
 
 - **Constrained decoding is not used.** `messages.parse()` against `LabelFields` exceeded
   120 s per label. The schema is supplied to the model as documentation inside the cached

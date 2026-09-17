@@ -3,13 +3,28 @@
 Measured with `scripts/benchmark.py` against `tests/fixtures/labels/compliant_bourbon.png`
 (1000×1400 PNG), macOS client, Anthropic API. Budget: **≈5,000 ms per label**.
 
-## Headline
+## Headline — PRF-01 met
+
+`claude-sonnet-5`, n=12, system prompt cached:
+
+| p50 | p95 | min | max | budget | over budget |
+|---|---|---|---|---|---|
+| **4,185 ms** | **4,242 ms** | 3,998 ms | 4,317 ms | 5,000 ms | **0 / 12** |
+
+### Model selection
 
 | Model | Median | Accuracy on discriminating cases |
 |---|---|---|
-| `claude-opus-5` | **5,590 ms** | 4/4 |
-| `claude-sonnet-5` | **4,220 ms** | 4/4 |
+| `claude-opus-5` | 5,590 ms | 4/4 |
+| **`claude-sonnet-5`** | **4,220 ms** | **4/4** |
 | `claude-haiku-4-5` | — | 400 error on image input |
+
+Sonnet 5 was chosen on **measured latency against a binding requirement**, not on cost.
+Accuracy was equal on every fixture where a wrong typographic judgement flips the verdict,
+so there was no quality trade to weigh. Configurable via `ANTHROPIC_MODEL`.
+
+The one run that exceeded budget during tuning (5,174 ms) was cache-cold. With the system
+prompt cached the spread is 319 ms across twelve runs.
 
 Accuracy set: the four fixtures where a wrong typographic judgement changes the verdict —
 `warning_body_is_bold` on both a compliant and a fully-bolded label, `warning_heading_is_caps`

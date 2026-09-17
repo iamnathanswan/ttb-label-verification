@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     # Org-scoped keys must name a workspace; workspace-scoped keys need not.
     anthropic_workspace_id: str = ""
+    # Chosen on measured latency, not cost: Opus 5 missed the PRF-01 budget at
+    # 5,590 ms; Sonnet 5 meets it at 4,220 ms with identical accuracy on the
+    # discriminating typographic fixtures. See docs/perf.md.
+    anthropic_model: str = "claude-sonnet-5"
 
     # OPS-05 — public endpoint with a funded key behind it
     max_upload_bytes: int = 10 * 1024 * 1024
