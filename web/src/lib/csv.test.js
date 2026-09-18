@@ -3,7 +3,7 @@ import { resultsToCsv } from './csv.js'
 
 /** BAT-05 — Janet in Seattle has been asking for batch export for years. */
 
-const result = (overrides = {}) => ({
+const result = ({ fields: fieldOverrides, ...overrides } = {}) => ({
   filename: 'label.png',
   overall: 'FAIL',
   elapsed_ms: 4200,
@@ -13,7 +13,7 @@ const result = (overrides = {}) => ({
     alcohol_content_pct: 45,
     net_contents_raw: '750 mL',
     producer_name: 'OLD TOM DISTILLERY',
-    ...overrides.fields,
+    ...fieldOverrides,
   },
   checks: [
     { id: 'VAL-04', status: 'FAIL', advisory: false, detail: 'Body is bold.' },

@@ -13,6 +13,12 @@ from app.rules import warning as warning_rules
 # Part 16 applies to every alcohol beverage. Parts 4, 5 and 7 differ by commodity,
 # and only Part 5 (distilled spirits) is implemented — see requirements §J-4.
 TYPE_SPECIFIC_CHECKS = {"VAL-10", "VAL-11", "VAL-12", "VAL-13"}
+
+# VAL-14 reports mandatory fields individually and cites Part 5 for class/type and
+# producer, so those rows are type-specific too. Hard-failing a wine label against
+# a distilled-spirits citation is the confidently-wrong outcome §J-4 exists to
+# prevent, whichever rule ID it arrives under.
+PART_5_MANDATORY_FIELDS = {"Class/type designation present", "Producer name and address present"}
 FULLY_IMPLEMENTED_TYPES = {"distilled_spirits"}
 
 
@@ -58,7 +64,9 @@ def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> lis
     type_checks = field_rules.check_all(fields)
     if fields.beverage_type not in FULLY_IMPLEMENTED_TYPES:
         type_checks = [
-            _soften_type_specific(c, fields.beverage_type) if c.id in TYPE_SPECIFIC_CHECKS else c
+            _soften_type_specific(c, fields.beverage_type)
+            if c.id in TYPE_SPECIFIC_CHECKS or c.name in PART_5_MANDATORY_FIELDS
+            else c
             for c in type_checks
         ]
     checks.extend(type_checks)

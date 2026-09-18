@@ -30,7 +30,8 @@ export default function App() {
     })
   }
 
-  const removeFile = (name) => setFiles((current) => current.filter((f) => f.name !== name))
+  const removeFile = (target) =>
+    setFiles((current) => current.filter((f) => !(f.name === target.name && f.size === target.size)))
 
   async function verify() {
     if (!files.length) return
@@ -98,7 +99,7 @@ export default function App() {
                 {files.map((f) => (
                   <li key={`${f.name}-${f.size}`}>
                     <span className="queue__name">{f.name}</span>
-                    <button type="button" onClick={() => removeFile(f.name)} disabled={busy}>
+                    <button type="button" onClick={() => removeFile(f)} disabled={busy}>
                       Remove<span className="sr-only"> {f.name}</span>
                     </button>
                   </li>
@@ -174,8 +175,8 @@ export default function App() {
             </div>
           ))}
 
-          {sorted.map((r, i) => (
-            <ResultCard key={`${r.filename}-${i}`} result={r} defaultOpen={sorted.length === 1} />
+          {sorted.map((r) => (
+            <ResultCard key={r.filename} result={r} defaultOpen={sorted.length === 1} />
           ))}
         </section>
       </main>

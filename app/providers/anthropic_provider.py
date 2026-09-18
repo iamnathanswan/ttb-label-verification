@@ -33,7 +33,8 @@ complete, or standardise anything.
 - If text is misspelled, oddly capitalised, abbreviated, or worded unusually, \
 reproduce it exactly as printed. Do not fix it. Apparent errors are frequently \
 the very thing the reviewer needs to see.
-- If a field is absent, return null. Absence is a meaningful finding; a guess is not.
+- If a text field is absent, return an empty string. If a numeric field is absent, \
+return null. Absence is a meaningful finding; a guess is not.
 - Make no judgement about whether the label complies with any requirement.
 
 For the government warning, transcribe the complete text verbatim, preserving \
@@ -58,8 +59,8 @@ Set image_legible to false only when the image genuinely cannot be read — \
 severe blur, darkness, glare, or occlusion — and say why. Perspective, moderate \
 glare, and imperfect lighting are normal; read through them.
 
-Record a confidence between 0 and 1 in field_confidence for any field you read \
-with difficulty."""
+List the name of any field you read with difficulty in low_confidence_fields, so \
+it can be routed to a person rather than trusted silently."""
 
 SCHEMA_PREAMBLE = """
 

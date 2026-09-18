@@ -112,7 +112,11 @@ def check_net_contents(expected: str | None, fields: LabelFields) -> CheckResult
     expected_ml, observed_ml = parse_volume_ml(expected), parse_volume_ml(observed_raw)
 
     if expected_ml is not None and observed_ml is not None:
-        if abs(expected_ml - observed_ml) < 0.5:
+        # Relative, not absolute: 750 mL and 25.4 fl oz are the same container
+        # declared two lawful ways, and differ by 1.17 mL after conversion. An
+        # absolute half-millilitre tolerance called that a discrepancy.
+        tolerance = max(0.5, 0.01 * max(expected_ml, observed_ml))
+        if abs(expected_ml - observed_ml) <= tolerance:
             return CheckResult(
                 id="MCH-01", name="Net contents matches application", status=Status.PASS,
                 expected=expected, observed=observed_raw,

@@ -19,8 +19,13 @@ _TO_ML = {
     "l": 1000.0,
     "liter": 1000.0,
     "litre": 1000.0,
+    # Fluid ounces are printed with and without periods and spacing; all of
+    # "12 FL OZ", "12 FL. OZ.", "12 FL.OZ." and "12FLOZ" appear on real labels.
     "fl oz": 29.5735,
     "fl. oz.": 29.5735,
+    "fl.oz.": 29.5735,
+    "fl.oz": 29.5735,
+    "fl. oz": 29.5735,
     "floz": 29.5735,
     "fluid ounce": 29.5735,
     "oz": 29.5735,
@@ -31,10 +36,21 @@ _TO_ML = {
 
 # Longest unit names first so "fluid ounce" is not matched as "oz".
 _UNIT_ALTERNATION = "|".join(sorted((re.escape(u) for u in _TO_ML), key=len, reverse=True))
+
+# A trailing \b cannot match after a unit that ends in a period, so "25.4 FL. OZ."
+# — an entirely ordinary US printing — would fail to parse. A lookahead for a
+# non-word character or end of string accepts it without loosening the match.
 _PATTERN = re.compile(
-    rf"(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>{_UNIT_ALTERNATION})\b",
+    rf"(?P<value>\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:[.,]\d+)?)\s*"
+    rf"(?P<unit>{_UNIT_ALTERNATION})(?=\W|$)",
     re.IGNORECASE,
 )
+
+# `1,500` is one thousand five hundred; `1,75` is European decimal notation for
+# 1.75. Treating every comma as a decimal point turned "1,500 mL" into 1.5 mL,
+# which then selected the wrong minimum type size under 16.22(b) — a regulatory
+# error, not a display one.
+_THOUSANDS = re.compile(r"^\d{1,3}(,\d{3})+(\.\d+)?$")
 
 
 def parse_volume_ml(text: str | None) -> float | None:
@@ -49,9 +65,14 @@ def parse_volume_ml(text: str | None) -> float | None:
     match = _PATTERN.search(text.strip())
     if not match:
         return None
-    raw = match.group("value").replace(",", ".")
-    unit = match.group("unit").lower().rstrip(".")
-    factor = _TO_ML.get(unit) or _TO_ML.get(unit.replace(".", ""))
+    raw = match.group("value")
+    if _THOUSANDS.match(raw):
+        raw = raw.replace(",", "")          # 1,500 -> 1500
+    elif "," in raw:
+        raw = raw.replace(",", ".")         # 1,75 -> 1.75 (European decimal)
+
+    unit = match.group("unit").lower().strip()
+    factor = _TO_ML.get(unit) or _TO_ML.get(unit.rstrip(".")) or _TO_ML.get(unit.replace(".", ""))
     if factor is None:
         return None
     try:

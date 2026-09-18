@@ -41,13 +41,16 @@ def _expected(
     return values if values.model_dump(exclude_none=True) else None
 
 
+class UploadTooLarge(Exception):
+    """One file exceeds the per-file ceiling. Carries a message for the agent."""
+
+
 async def _read(upload: UploadFile) -> bytes:
     content = await upload.read()
     if len(content) > settings.max_upload_bytes:
         mb = settings.max_upload_bytes // (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller image.",
+        raise UploadTooLarge(
+            f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller image."
         )
     return content
 
@@ -65,7 +68,10 @@ async def verify_label(
 ) -> VerificationResult:
     """Verify one label. Application values are optional (MCH-06)."""
     enforce(request, cost=1)
-    content = await _read(file)
+    try:
+        content = await _read(file)
+    except UploadTooLarge as exc:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
 
     upload = LabelUpload(
         filename=file.filename or "label",
@@ -139,19 +145,48 @@ async def verify_batch(
         )
     enforce(request, cost=len(files))
 
-    expected_map = _expected_from_csv(await expected_csv.read()) if expected_csv else {}
+    expected_map: dict[str, ExpectedValues] = {}
+    if expected_csv:
+        try:
+            expected_map = _expected_from_csv(await _read(expected_csv))
+        except UploadTooLarge as exc:
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
 
-    uploads = [
-        LabelUpload(
-            filename=f.filename or f"label-{i + 1}",
-            content=await _read(f),
-            expected=expected_map.get(f.filename or ""),
+    # A file too large for the per-file ceiling becomes one rejected label, not a
+    # rejected submission: an agent who uploaded 300 labels and included one
+    # 11 MB scan should get 299 results and one clear error (BAT-04). Their rate
+    # limit was already charged for the whole batch, so aborting would spend the
+    # budget and return nothing.
+    uploads: list[LabelUpload] = []
+    rejected: list[dict[str, str]] = []
+    total_bytes = 0
+
+    for index, upload_file in enumerate(files):
+        name = upload_file.filename or f"label-{index + 1}"
+        try:
+            content = await _read(upload_file)
+        except UploadTooLarge as exc:
+            rejected.append({"filename": name, "message": str(exc)})
+            continue
+
+        total_bytes += len(content)
+        if total_bytes > settings.max_batch_bytes:
+            mb = settings.max_batch_bytes // (1024 * 1024)
+            rejected.append({
+                "filename": name,
+                "message": (
+                    f"The submission exceeds {mb} MB in total, so this label and any after it "
+                    "were not processed. Split the batch."
+                ),
+            })
+            break
+
+        uploads.append(
+            LabelUpload(filename=name, content=content, expected=expected_map.get(name))
         )
-        for i, f in enumerate(files)
-    ]
 
     return StreamingResponse(
-        stream_batch(request.app.state.provider, uploads),
+        stream_batch(request.app.state.provider, uploads, rejected=rejected),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

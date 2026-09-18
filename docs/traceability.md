@@ -37,7 +37,7 @@ and the submission itself.
 | VAL-11 | Alcohol content must be expressed as percentage by volume; proo… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
 | VAL-12 | Producer name must be preceded by a function phrase — "bottled… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
 | VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_fields.py` | test |
-| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_api.py`<br>`test_rules_fields.py` | test |
+| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_api.py`<br>`test_review_regressions.py`<br>`test_rules_fields.py` | test |
 | MCH-01 | Compare extracted label values against expected application val… | `app/api.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce… | — | `test_rules_match.py` | test |
 | MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py`<br>`app/rules/match.py` | `test_rules_match.py` | test |
@@ -51,7 +51,7 @@ and the submission itself.
 | BAT-01 | Accept multiple label uploads at once | `app/api.py`<br>`app/batch.py` | `test_api.py`<br>`test_load.py` | test |
 | BAT-02 | Target 200–300 labels per batch | `app/batch.py`<br>`app/config.py` | `test_load.py` | test |
 | BAT-03 | Per-label progress and a batch summary | `app/batch.py` | `test_api.py`<br>`test_load.py` | test |
-| BAT-04 | One failure must not abort the batch | `app/batch.py` | `test_api.py`<br>`test_load.py` | test |
+| BAT-04 | One failure must not abort the batch | `app/api.py`<br>`app/batch.py` | `test_api.py`<br>`test_load.py` | test |
 | BAT-05 | Export batch results to CSV | `app/api.py`<br>`app/batch.py`<br>`web/src/lib/csv.js` | `csv.test.js` | test |
 | BAT-06 | Bounded concurrency to protect latency and rate limits | `app/batch.py`<br>`app/config.py` | `test_load.py` | test |
 | OPS-01 | Stateless — no uploaded label or extracted content persisted | `app/api.py` | `test_load.py` | test |

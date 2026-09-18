@@ -42,5 +42,7 @@ export function downloadCsv(filename, text) {
   document.body.appendChild(link)
   link.click()
   link.remove()
-  URL.revokeObjectURL(url)
+  // Firefox and some WebKit builds have not begun fetching the blob when click()
+  // returns; revoking synchronously produces an empty download with no error.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }

@@ -25,6 +25,8 @@ class SlidingWindowLimiter:
     def check(self, client: str, cost: int = 1) -> tuple[bool, int]:
         """Record `cost` units against `client`. Returns (allowed, seconds_to_wait)."""
         now = time.monotonic()
+        self._evict(now)
+
         hits = self._hits[client]
         while hits and now - hits[0] > self.window:
             hits.popleft()
@@ -35,15 +37,35 @@ class SlidingWindowLimiter:
         hits.extend([now] * cost)
         return True, 0
 
+    def _evict(self, now: float) -> None:
+        """Drop buckets whose window has passed.
+
+        Without this the map grows by one deque per distinct client key. Since the
+        key derives from a client-supplied header, a caller rotating it would grow
+        the map without bound — a slow leak reachable from the public endpoint.
+        """
+        stale = [key for key, hits in self._hits.items() if not hits or now - hits[-1] > self.window]
+        for key in stale:
+            del self._hits[key]
+
 
 _limiter = SlidingWindowLimiter(settings.rate_limit_labels, settings.rate_limit_window_seconds)
 
 
 def client_key(request: Request) -> str:
-    """Identify the caller. Railway terminates TLS upstream, so trust its header."""
+    """Identify the caller from behind the platform proxy.
+
+    Proxies *append* to X-Forwarded-For, so the leftmost entry is whatever the
+    caller sent and is fully forgeable — a script rotating it would get a fresh
+    bucket per request and never meet the ceiling that protects the funded API
+    key. The rightmost entry is the one the trusted proxy wrote, so that is the
+    one used.
+    """
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        entries = [part.strip() for part in forwarded.split(",") if part.strip()]
+        if entries:
+            return entries[-1]
     return request.client.host if request.client else "unknown"
 
 
