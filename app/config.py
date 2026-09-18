@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     max_batch_files: int = 300  # BAT-02
     extraction_concurrency: int = 8  # BAT-06
 
+    # OPS-05 — ceiling on a public endpoint with a funded key behind it
+    rate_limit_labels: int = 120
+    rate_limit_window_seconds: int = 900
+
     # PRF-04 — downscale before the model call
     max_image_edge_px: int = 1600
 

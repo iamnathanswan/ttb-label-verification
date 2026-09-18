@@ -1,19 +1,53 @@
-/* Baseline only. The real accessible interface is Phase 4 (UX-01..08). */
+/* Phase 3 working interface. The accessible, batch-capable UI is Phase 4. */
 :root {
-  --fg: #1a1a1a;
-  --muted: #5c5c5c;
-  --bg: #ffffff;
-  --accent: #14532d;
+  --fg: #1a1a1a; --muted: #5c5c5c; --bg: #fff; --line: #d8d8d8;
+  --pass: #1a6b33; --review: #8a5a00; --fail: #a11b1b;
+  --pass-bg: #eef7f0; --review-bg: #fdf6e8; --fail-bg: #fdefef;
 }
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-}
-main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem; }
-h1 { font-size: 1.75rem; margin: 0 0 0.5rem; color: var(--accent); }
-.lede { font-size: 1.05rem; margin: 0 0 2rem; }
-.status { padding: 0.75rem 1rem; background: #f4f4f4; border-radius: 6px; }
-.note { color: var(--muted); font-size: 0.9rem; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+h1 { font-size: 1.6rem; margin: 0 0 .4rem; }
+.lede { margin: 0 0 2rem; color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+form { border: 1px solid var(--line); border-radius: 8px; padding: 1.25rem; }
+.field { display: block; margin-bottom: 1rem; }
+.field > span { display: block; font-weight: 600; margin-bottom: .3rem; font-size: .95rem; }
+.field input { width: 100%; padding: .6rem; font-size: 1rem;
+  border: 1px solid var(--line); border-radius: 6px; }
+details { margin: .5rem 0 1rem; }
+summary { cursor: pointer; padding: .5rem 0; font-weight: 600; }
+button { font-size: 1.05rem; padding: .7rem 1.4rem; border: 0; border-radius: 6px;
+  background: #1a3a6b; color: #fff; cursor: pointer; }
+button:disabled { background: #7a8699; cursor: progress; }
+
+.error { margin-top: 1.5rem; padding: .9rem 1rem; border-radius: 6px;
+  background: var(--fail-bg); border: 1px solid var(--fail); color: var(--fail); }
+
+.result { margin-top: 2rem; }
+.verdict { display: flex; align-items: center; gap: .6rem; font-size: 1.3rem;
+  padding: .8rem 1rem; border-radius: 8px; margin: 0 0 1.25rem; }
+.verdict--pass { background: var(--pass-bg); color: var(--pass); }
+.verdict--review { background: var(--review-bg); color: var(--review); }
+.verdict--fail { background: var(--fail-bg); color: var(--fail); }
+.verdict__meta { margin-left: auto; font-size: .85rem; font-weight: 400; color: var(--muted); }
+
+h3 { margin: 2rem 0 .3rem; font-size: 1.05rem; }
+.note { margin: 0 0 .8rem; color: var(--muted); font-size: .9rem; }
+.checks { list-style: none; margin: 0; padding: 0; }
+.check { display: flex; gap: .75rem; padding: .8rem 0; border-top: 1px solid var(--line); }
+.check__status { flex: 0 0 1.5rem; height: 1.5rem; border-radius: 50%; text-align: center;
+  line-height: 1.5rem; font-weight: 700; font-size: .85rem; color: #fff; }
+.check--pass .check__status { background: var(--pass); }
+.check--review .check__status { background: var(--review); }
+.check--fail .check__status { background: var(--fail); }
+.check__name { margin: 0; font-weight: 600; }
+.check__tag { margin-left: .5rem; font-size: .7rem; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 3px; padding: .05rem .3rem; }
+.check__detail { margin: .15rem 0 0; }
+.check__compare { margin: .35rem 0 0; display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: .9rem; }
+.check__compare code { background: #f2f2f2; padding: .1rem .35rem; border-radius: 3px; }
+.check__cite { margin: .25rem 0 0; font-size: .82rem; color: var(--muted); }
