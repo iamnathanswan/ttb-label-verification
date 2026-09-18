@@ -27,6 +27,7 @@ def status_of(fields: LabelFields, check_id: str) -> Status:
 
 # --- VAL-01 — exact text ------------------------------------------------------
 
+
 def test_val_01_exact_statement_passes():
     assert check_warning_text(compliant()).status is Status.PASS
 
@@ -57,6 +58,7 @@ def test_val_01_is_case_sensitive():
 
 # --- VAL-02, VAL-03, VAL-04 — typography -------------------------------------
 
+
 def test_val_02_title_case_heading_fails():
     assert status_of(compliant(warning_heading_is_caps="no"), "VAL-02") is Status.FAIL
 
@@ -74,23 +76,28 @@ def test_val_04_body_not_bold_passes():
     assert status_of(compliant(warning_body_is_bold="no"), "VAL-04") is Status.PASS
 
 
-@pytest.mark.parametrize("check_id,field", [
-    ("VAL-02", "warning_heading_is_caps"),
-    ("VAL-03", "warning_heading_is_bold"),
-    ("VAL-04", "warning_body_is_bold"),
-])
+@pytest.mark.parametrize(
+    "check_id,field",
+    [
+        ("VAL-02", "warning_heading_is_caps"),
+        ("VAL-03", "warning_heading_is_bold"),
+        ("VAL-04", "warning_body_is_bold"),
+    ],
+)
 def test_unclear_observations_route_to_review(check_id, field):
-    """"unclear" must never be silently read as compliant or as a failure."""
+    """ "unclear" must never be silently read as compliant or as a failure."""
     assert status_of(compliant(**{field: "unclear"}), check_id) is Status.REVIEW
 
 
 # --- VAL-05 — separation ------------------------------------------------------
+
 
 def test_val_05_not_separated_fails():
     assert status_of(compliant(warning_visually_separated="no"), "VAL-05") is Status.FAIL
 
 
 # --- VAL-06..09 — advisory only ----------------------------------------------
+
 
 @pytest.mark.parametrize("check_id", ["VAL-06", "VAL-07", "VAL-08", "VAL-09"])
 def test_measurement_rules_never_hard_fail(check_id):
@@ -115,6 +122,7 @@ def test_val_08_unknown_volume_says_so():
 
 
 # --- diff helper --------------------------------------------------------------
+
 
 def test_difference_description_quotes_both_sides():
     described = describe_first_difference("the quick brown fox", "the quick red fox")

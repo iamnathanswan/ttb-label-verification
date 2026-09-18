@@ -157,10 +157,10 @@ and `StubProvider` is what the test suite runs against.
 ## Commands
 
 ```bash
+./scripts/check.sh                       # everything CI runs — use before every commit
 uvicorn app.main:app --reload            # API + UI
 cd web && npm run dev                    # frontend only, hot reload
 pytest -q                                # rules + API, no network
-ruff check . && ruff format .
 python3 docs/check_coverage.py           # spec cross-reference; must exit 0
 python scripts/benchmark.py 12           # PRF-01 latency; rewrites docs/perf.md figures
 python scripts/verify_corpus.py \

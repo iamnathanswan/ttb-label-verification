@@ -40,7 +40,8 @@ def test_ops_02_sdk_is_imported_only_behind_the_seam():
 def test_ops_02_interface_is_minimal_enough_to_reimplement():
     """A second provider should need one method, not a study of the first."""
     required = [
-        name for name, member in inspect.getmembers(ExtractionProvider, inspect.isfunction)
+        name
+        for name, member in inspect.getmembers(ExtractionProvider, inspect.isfunction)
         if getattr(member, "__isabstractmethod__", False)
     ]
     assert required == ["extract"]

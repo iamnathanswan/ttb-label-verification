@@ -32,6 +32,7 @@ def variants(req_id: str) -> tuple[str, str]:
 
 def expand_ranges(text: str) -> str:
     """Rewrite `VAL-01..09` as the individual IDs so range notation counts."""
+
     def grow(match: re.Match) -> str:
         prefix, lo, hi = match.group(1), int(match.group(2)), int(match.group(3))
         return " ".join(f"{prefix}-{n:02d}" for n in range(lo, hi + 1))
@@ -41,8 +42,9 @@ def expand_ranges(text: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true",
-                        help="Fail if any buildable requirement lacks a test; write nothing")
+    parser.add_argument(
+        "--check", action="store_true", help="Fail if any buildable requirement lacks a test; write nothing"
+    )
     args = parser.parse_args()
 
     requirements = (DOCS / "requirements.md").read_text(encoding="utf-8")
@@ -72,10 +74,7 @@ def main() -> int:
     scripts = scan_expanded(script_files)
 
     verified = {rid for rid in buildable if tests.get(rid) or scripts.get(rid)}
-    untested = [
-        rid for rid in buildable
-        if rid not in verified and not rid.startswith(("DEL", "OPS-03", "OPS-06"))
-    ]
+    untested = [rid for rid in buildable if rid not in verified and not rid.startswith(("DEL", "OPS-03", "OPS-06"))]
 
     if args.check:
         if untested:

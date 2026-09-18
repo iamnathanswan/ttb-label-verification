@@ -60,10 +60,19 @@ async def main(runs: int) -> int:
     if first:
         print("\nextracted:")
         for name in (
-            "brand_name", "class_type", "alcohol_content_pct", "alcohol_content_proof",
-            "net_contents_raw", "producer_function_phrase", "producer_name", "beverage_type",
-            "warning_heading_is_caps", "warning_heading_is_bold", "warning_body_is_bold",
-            "warning_visually_separated", "same_field_of_vision",
+            "brand_name",
+            "class_type",
+            "alcohol_content_pct",
+            "alcohol_content_proof",
+            "net_contents_raw",
+            "producer_function_phrase",
+            "producer_name",
+            "beverage_type",
+            "warning_heading_is_caps",
+            "warning_heading_is_bold",
+            "warning_body_is_bold",
+            "warning_visually_separated",
+            "same_field_of_vision",
         ):
             print(f"  {name:34s} {getattr(first, name)!r}")
         print(f"\n  warning_text: {first.warning_text!r}")

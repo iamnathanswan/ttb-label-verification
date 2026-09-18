@@ -68,8 +68,9 @@ async def run_in_process(manifest: dict) -> list[Outcome]:
             started = time.perf_counter()
             fields, usage = await provider.extract(*prepare((LABELS / name).read_bytes()))
             result = verify(fields, filename=name)
-            outcomes.append(_compare(name, meta, result.model_dump(mode="json"),
-                                     (time.perf_counter() - started) * 1000))
+            outcomes.append(
+                _compare(name, meta, result.model_dump(mode="json"), (time.perf_counter() - started) * 1000)
+            )
             print(_line(outcomes[-1]), flush=True)
     finally:
         await provider.aclose()
@@ -84,14 +85,21 @@ def run_against_url(manifest: dict, url: str) -> list[Outcome]:
     with httpx.Client(timeout=120.0) as client:
         for name, meta in manifest.items():
             started = time.perf_counter()
-            response = client.post(
-                endpoint, files={"file": (name, (LABELS / name).read_bytes(), "image/png")}
-            )
+            response = client.post(endpoint, files={"file": (name, (LABELS / name).read_bytes(), "image/png")})
             elapsed = (time.perf_counter() - started) * 1000
             if response.status_code != 200:
-                outcomes.append(Outcome(name, meta.get("note", ""), meta["expect_overall"],
-                                        set(meta.get("expect_fail", [])), "-", set(), elapsed,
-                                        error=f"HTTP {response.status_code}: {response.text[:120]}"))
+                outcomes.append(
+                    Outcome(
+                        name,
+                        meta.get("note", ""),
+                        meta["expect_overall"],
+                        set(meta.get("expect_fail", [])),
+                        "-",
+                        set(),
+                        elapsed,
+                        error=f"HTTP {response.status_code}: {response.text[:120]}",
+                    )
+                )
             else:
                 outcomes.append(_compare(name, meta, response.json(), elapsed))
             print(_line(outcomes[-1]), flush=True)
@@ -101,8 +109,10 @@ def run_against_url(manifest: dict, url: str) -> list[Outcome]:
 def _line(o: Outcome) -> str:
     if o.error:
         return f"MISS {o.name:32s} {o.error}"
-    return (f"{'ok  ' if o.ok else 'MISS'} {o.name:32s} {o.got_overall:6s} "
-            f"(want {o.want_overall:6s})  {o.elapsed_ms:6.0f}ms  failed={sorted(o.got_fail) or '-'}")
+    return (
+        f"{'ok  ' if o.ok else 'MISS'} {o.name:32s} {o.got_overall:6s} "
+        f"(want {o.want_overall:6s})  {o.elapsed_ms:6.0f}ms  failed={sorted(o.got_fail) or '-'}"
+    )
 
 
 def to_markdown(outcomes: list[Outcome], target: str) -> str:

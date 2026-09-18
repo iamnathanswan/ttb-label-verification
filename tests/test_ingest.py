@@ -18,9 +18,16 @@ def png(width: int, height: int, mode: str = "RGB") -> bytes:
 
 # --- EXT-10 — accepted formats ------------------------------------------------
 
-@pytest.mark.parametrize("fmt,media", [
-    ("PNG", "image/png"), ("JPEG", "image/jpeg"), ("WEBP", "image/webp"), ("TIFF", "image/tiff"),
-])
+
+@pytest.mark.parametrize(
+    "fmt,media",
+    [
+        ("PNG", "image/png"),
+        ("JPEG", "image/jpeg"),
+        ("WEBP", "image/webp"),
+        ("TIFF", "image/tiff"),
+    ],
+)
 def test_ext_10_common_image_formats_are_accepted(fmt, media):
     buf = io.BytesIO()
     Image.new("RGB", (800, 1000), "white").save(buf, format=fmt)
@@ -57,6 +64,7 @@ def test_ext_10_oversized_upload_is_refused_before_decoding():
 
 # --- PRF-04 — downscaling before the model call -------------------------------
 
+
 def test_prf_04_large_images_are_downscaled_to_the_configured_edge():
     image, _ = prepare(png(4000, 3000))
     assert max(Image.open(io.BytesIO(image)).size) == settings.max_image_edge_px
@@ -75,6 +83,7 @@ def test_prf_04_aspect_ratio_is_preserved():
 
 
 # --- EXT-09 — imperfect captures ----------------------------------------------
+
 
 def test_ext_09_exif_rotation_is_normalised():
     """A phone photo carries rotation in metadata; the model sees pixels."""

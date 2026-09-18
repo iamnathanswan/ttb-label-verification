@@ -67,9 +67,9 @@ def parse_volume_ml(text: str | None) -> float | None:
         return None
     raw = match.group("value")
     if _THOUSANDS.match(raw):
-        raw = raw.replace(",", "")          # 1,500 -> 1500
+        raw = raw.replace(",", "")  # 1,500 -> 1500
     elif "," in raw:
-        raw = raw.replace(",", ".")         # 1,75 -> 1.75 (European decimal)
+        raw = raw.replace(",", ".")  # 1,75 -> 1.75 (European decimal)
 
     unit = match.group("unit").lower().strip()
     factor = _TO_ML.get(unit) or _TO_ML.get(unit.rstrip(".")) or _TO_ML.get(unit.replace(".", ""))

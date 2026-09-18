@@ -179,9 +179,11 @@ CASES = {
     ),
     "small_bottle_50ml": (
         {"net": "50 mL"},
-        {"note": "Miniature. Selects the 1 mm type-size threshold under §16.22(b). No decidable "
-                 "defect, so PASS; the type-size caveat is advisory and reported separately.",
-         "expect_overall": "PASS"},
+        {
+            "note": "Miniature. Selects the 1 mm type-size threshold under §16.22(b). No decidable "
+            "defect, so PASS; the type-size caveat is advisory and reported separately.",
+            "expect_overall": "PASS",
+        },
     ),
     "imported_no_country": (
         {
@@ -197,9 +199,12 @@ CASES = {
     ),
     "warning_not_separated": (
         {"embed": True},
-        {"note": "Warning set as one more paragraph of body copy, same face and size as the "
-                 "marketing text around it; §16.21 requires it be separate and apart.",
-         "expect_overall": "FAIL", "expect_fail": ["VAL-05"]},
+        {
+            "note": "Warning set as one more paragraph of body copy, same face and size as the "
+            "marketing text around it; §16.21 requires it be separate and apart.",
+            "expect_overall": "FAIL",
+            "expect_fail": ["VAL-05"],
+        },
     ),
 }
 

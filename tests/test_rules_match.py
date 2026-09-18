@@ -23,6 +23,7 @@ def named(results, fragment):
 
 # --- MCH-06 — expected values are optional -----------------------------------
 
+
 def test_no_application_values_produces_no_comparisons():
     assert check_all(labelled(), None) == []
 
@@ -33,6 +34,7 @@ def test_partial_application_values_compare_only_what_was_given():
 
 
 # --- MCH-02 — normalisation folds insubstantial differences ------------------
+
 
 def test_mch_02_case_difference_is_review_not_failure():
     """Dave's case: STONE'S THROW against Stone's Throw is the same brand."""
@@ -60,11 +62,14 @@ def test_mch_02_missing_on_label_fails():
     assert named(results, "brand").status is Status.FAIL
 
 
-@pytest.mark.parametrize("a,b", [
-    ("Café Noir", "CAFE NOIR"),
-    ("Smith & Sons", "smith and sons".replace(" and ", " & ")),
-    ("  spaced   out  ", "Spaced Out"),
-])
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        ("Café Noir", "CAFE NOIR"),
+        ("Smith & Sons", "smith and sons".replace(" and ", " & ")),
+        ("  spaced   out  ", "Spaced Out"),
+    ],
+)
 def test_normalise_folds_accents_punctuation_and_spacing(a, b):
     assert normalise(a) == normalise(b)
 
@@ -75,48 +80,53 @@ def test_normalise_does_not_fold_different_words():
 
 # --- MCH-03 — ABV tolerance ---------------------------------------------------
 
-@pytest.mark.parametrize("label_abv,expected_abv,status", [
-    (45.0, 45.0, Status.PASS),    # identical
-    (45.2, 45.0, Status.PASS),    # inside tolerance
-    (44.7, 45.0, Status.PASS),    # inside tolerance, below
-    (45.3, 45.0, Status.PASS),    # exactly at tolerance
-    (45.4, 45.0, Status.FAIL),    # outside tolerance
-    (40.0, 45.0, Status.FAIL),    # plainly different
-])
+
+@pytest.mark.parametrize(
+    "label_abv,expected_abv,status",
+    [
+        (45.0, 45.0, Status.PASS),  # identical
+        (45.2, 45.0, Status.PASS),  # inside tolerance
+        (44.7, 45.0, Status.PASS),  # inside tolerance, below
+        (45.3, 45.0, Status.PASS),  # exactly at tolerance
+        (45.4, 45.0, Status.FAIL),  # outside tolerance
+        (40.0, 45.0, Status.FAIL),  # plainly different
+    ],
+)
 def test_mch_03_tolerance_is_plus_or_minus_point_three(label_abv, expected_abv, status):
     """27 CFR 5.65(c) permits ±0.3 percentage points."""
-    results = check_all(labelled(alcohol_content_pct=label_abv),
-                        ExpectedValues(alcohol_content_pct=expected_abv))
+    results = check_all(labelled(alcohol_content_pct=label_abv), ExpectedValues(alcohol_content_pct=expected_abv))
     assert named(results, "alcohol").status is status
 
 
 def test_mch_03_quantifies_the_difference():
-    results = check_all(labelled(alcohol_content_pct=46.0),
-                        ExpectedValues(alcohol_content_pct=45.0))
+    results = check_all(labelled(alcohol_content_pct=46.0), ExpectedValues(alcohol_content_pct=45.0))
     assert "1 points" in named(results, "alcohol").detail
 
 
 def test_mch_03_missing_label_abv_fails():
-    results = check_all(labelled(alcohol_content_pct=None),
-                        ExpectedValues(alcohol_content_pct=45.0))
+    results = check_all(labelled(alcohol_content_pct=None), ExpectedValues(alcohol_content_pct=45.0))
     assert named(results, "alcohol").status is Status.FAIL
 
 
 # --- net contents compared by value ------------------------------------------
 
-@pytest.mark.parametrize("label_text,app_text,status", [
-    ("750 mL", "750 mL", Status.PASS),
-    ("750ML", "750 mL", Status.PASS),      # formatting only
-    ("0.75 L", "750 mL", Status.PASS),     # different unit, same volume
-    ("375 mL", "750 mL", Status.FAIL),
-])
+
+@pytest.mark.parametrize(
+    "label_text,app_text,status",
+    [
+        ("750 mL", "750 mL", Status.PASS),
+        ("750ML", "750 mL", Status.PASS),  # formatting only
+        ("0.75 L", "750 mL", Status.PASS),  # different unit, same volume
+        ("375 mL", "750 mL", Status.FAIL),
+    ],
+)
 def test_net_contents_compared_by_volume_not_string(label_text, app_text, status):
-    results = check_all(labelled(net_contents_raw=label_text),
-                        ExpectedValues(net_contents=app_text))
+    results = check_all(labelled(net_contents_raw=label_text), ExpectedValues(net_contents=app_text))
     assert named(results, "net contents").status is status
 
 
 # --- MCH-05 — every finding shows both sides ---------------------------------
+
 
 def test_every_non_passing_result_shows_expected_and_observed():
     results = check_all(

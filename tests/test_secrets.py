@@ -25,9 +25,7 @@ def test_ops_04_no_key_in_the_built_client_bundle():
 
 
 def test_ops_04_no_key_in_tracked_source():
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout.split()
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
     for name in tracked:
         path = ROOT / name
         if not path.is_file() or path.suffix in {".png", ".pdf", ".ico", ".woff2"}:
@@ -36,9 +34,7 @@ def test_ops_04_no_key_in_tracked_source():
 
 
 def test_ops_04_env_file_is_not_tracked():
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout.split()
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
     assert ".env" not in tracked
 
 
@@ -68,9 +64,7 @@ async def test_ops_04_errors_never_echo_the_credential():
 
     request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
     failures = [
-        anthropic.AuthenticationError(
-            "invalid x-api-key", response=httpx.Response(401, request=request), body=None
-        ),
+        anthropic.AuthenticationError("invalid x-api-key", response=httpx.Response(401, request=request), body=None),
         anthropic.BadRequestError(
             "credit balance is too low", response=httpx.Response(400, request=request), body=None
         ),

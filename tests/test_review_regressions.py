@@ -20,15 +20,19 @@ from app.rules.units import minimum_type_size_mm, parse_volume_ml
 
 # --- units ---------------------------------------------------------------------
 
-@pytest.mark.parametrize("text,expected_ml", [
-    ("1,500 mL", 1500.0),    # thousands separator, not a decimal point
-    ("1,000 mL", 1000.0),
-    ("1,500.5 mL", 1500.5),
-    ("1,75 L", 1750.0),      # European decimal notation still works
-    ("1.75 L", 1750.0),
-])
+
+@pytest.mark.parametrize(
+    "text,expected_ml",
+    [
+        ("1,500 mL", 1500.0),  # thousands separator, not a decimal point
+        ("1,000 mL", 1000.0),
+        ("1,500.5 mL", 1500.5),
+        ("1,75 L", 1750.0),  # European decimal notation still works
+        ("1.75 L", 1750.0),
+    ],
+)
 def test_thousands_separator_is_not_read_as_a_decimal_point(text, expected_ml):
-    """"1,500 mL" parsed as 1.5 mL, which then selected the wrong type-size bracket."""
+    """ "1,500 mL" parsed as 1.5 mL, which then selected the wrong type-size bracket."""
     assert parse_volume_ml(text) == pytest.approx(expected_ml)
 
 
@@ -43,6 +47,7 @@ def test_fluid_ounces_with_periods_are_parsed(text):
 
 
 # --- prompt / schema agreement -------------------------------------------------
+
 
 def test_prompt_never_asks_for_null_in_a_text_field():
     """The schema rejects null for text fields; obeying the old prompt caused a 503."""
@@ -64,6 +69,7 @@ def test_missing_mandatory_field_is_a_finding_not_an_extraction_failure():
 
 
 # --- rate limiting --------------------------------------------------------------
+
 
 def test_forged_forwarded_for_cannot_mint_a_fresh_bucket():
     """Proxies append, so the leftmost entry is caller-supplied and forgeable."""
@@ -99,6 +105,7 @@ def test_limiter_does_not_grow_without_bound():
 
 # --- batch robustness ------------------------------------------------------------
 
+
 def test_oversized_file_does_not_abort_the_rest_of_the_batch(tmp_path):
     """299 results and one clear error beats spending the rate limit for nothing."""
     from pathlib import Path
@@ -108,11 +115,14 @@ def test_oversized_file_does_not_abort_the_rest_of_the_batch(tmp_path):
 
     with TestClient(app) as client:
         client.app.state.provider = StubProvider(LabelFields(warning_text=C.WARNING_STATEMENT))
-        response = client.post("/api/verify/batch", files=[
-            ("files", ("good.png", good, "image/png")),
-            ("files", ("huge.jpg", oversized, "image/jpeg")),
-            ("files", ("good2.png", good, "image/png")),
-        ])
+        response = client.post(
+            "/api/verify/batch",
+            files=[
+                ("files", ("good.png", good, "image/png")),
+                ("files", ("huge.jpg", oversized, "image/jpeg")),
+                ("files", ("good2.png", good, "image/png")),
+            ],
+        )
     assert response.status_code == 200
     assert response.text.count("event: result") == 2
     assert response.text.count("event: error") == 1
@@ -124,6 +134,7 @@ def test_aggregate_batch_size_is_capped():
 
 
 # --- rules ------------------------------------------------------------------------
+
 
 def test_lawful_unit_conversion_is_not_reported_as_a_discrepancy():
     """750 mL and 25.4 fl oz are one container declared two ways (1.17 mL apart)."""
@@ -139,13 +150,17 @@ def test_genuine_volume_mismatch_still_fails():
 def test_wine_label_is_not_failed_against_a_part_5_citation():
     """VAL-14 cites Part 5 for class/type and producer, so those rows need softening too."""
     wine = LabelFields(
-        beverage_type="wine", warning_text=C.WARNING_STATEMENT,
-        warning_heading_is_caps="yes", warning_heading_is_bold="yes", warning_body_is_bold="no",
-        warning_visually_separated="yes", brand_name="CHATEAU EXAMPLE", net_contents_raw="750 mL",
+        beverage_type="wine",
+        warning_text=C.WARNING_STATEMENT,
+        warning_heading_is_caps="yes",
+        warning_heading_is_bold="yes",
+        warning_body_is_bold="no",
+        warning_visually_separated="yes",
+        brand_name="CHATEAU EXAMPLE",
+        net_contents_raw="750 mL",
     )
     part_5_rows = [
-        c for c in evaluate(wine)
-        if c.name in {"Class/type designation present", "Producer name and address present"}
+        c for c in evaluate(wine) if c.name in {"Class/type designation present", "Producer name and address present"}
     ]
     assert part_5_rows
     assert all(c.status.value != "FAIL" for c in part_5_rows)

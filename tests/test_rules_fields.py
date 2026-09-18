@@ -29,6 +29,7 @@ def check(fields: LabelFields, check_id: str):
 
 # --- VAL-11 — alcohol content -------------------------------------------------
 
+
 def test_val_11_percent_by_volume_passes():
     assert check(spirits(), "VAL-11")[0].status is Status.PASS
 
@@ -46,6 +47,7 @@ def test_val_11_absent_fails():
 
 
 # --- VAL-12 — producer function phrase ---------------------------------------
+
 
 @pytest.mark.parametrize("phrase", ["BOTTLED BY", "distilled by", "Imported By", "produced by"])
 def test_val_12_recognised_phrases_pass(phrase):
@@ -69,6 +71,7 @@ def test_val_12_without_producer_name_cannot_be_assessed():
 
 # --- VAL-13 — country of origin ----------------------------------------------
 
+
 def test_val_13_domestic_product_not_applicable():
     result = check(spirits(), "VAL-13")[0]
     assert result.status is Status.PASS
@@ -87,12 +90,14 @@ def test_val_13_import_with_country_passes():
 
 # --- VAL-10 — field of vision -------------------------------------------------
 
+
 def test_val_10_reports_observation():
     assert check(spirits(same_field_of_vision="no"), "VAL-10")[0].status is Status.FAIL
     assert check(spirits(same_field_of_vision="unclear"), "VAL-10")[0].status is Status.REVIEW
 
 
 # --- VAL-14 — mandatory fields reported individually -------------------------
+
 
 def test_val_14_all_present_pass():
     assert all(c.status is Status.PASS for c in check(spirits(), "VAL-14"))

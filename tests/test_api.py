@@ -63,6 +63,7 @@ def test_config_exposes_limits_the_ui_needs(client):
 
 # --- single label -------------------------------------------------------------
 
+
 def test_verify_returns_checks_and_timing(client, label_bytes):
     r = client.post("/api/verify", files={"file": ("label.png", label_bytes, "image/png")})
     assert r.status_code == 200
@@ -94,10 +95,7 @@ def test_case_difference_surfaces_as_review_not_failure(client, label_bytes):
         data={"brand_name": "Old Tom Distillery"},
     )
     # "Brand name present" (VAL-14) also matches on name; select the comparison.
-    brand = next(
-        c for c in r.json()["checks"]
-        if c["id"].startswith("MCH") and "brand" in c["name"].lower()
-    )
+    brand = next(c for c in r.json()["checks"] if c["id"].startswith("MCH") and "brand" in c["name"].lower())
     assert brand["status"] == Status.REVIEW
     assert brand["expected"] and brand["observed"]
 
@@ -115,6 +113,7 @@ def test_extraction_failure_maps_to_a_retryable_status(client, label_bytes):
 
 
 # --- batch --------------------------------------------------------------------
+
 
 def _events(text: str) -> list[tuple[str, dict]]:
     out = []

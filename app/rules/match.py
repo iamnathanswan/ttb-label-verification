@@ -39,22 +39,34 @@ def _text_match(
     observed = (observed or "").strip()
     if not observed:
         return CheckResult(
-            id=id_, name=name, status=Status.FAIL, citation=citation,
-            expected=expected, observed=None,
+            id=id_,
+            name=name,
+            status=Status.FAIL,
+            citation=citation,
+            expected=expected,
+            observed=None,
             detail=f"The application states “{expected}” but nothing corresponding was found on the label.",
         )
 
     if observed == expected.strip():
         return CheckResult(
-            id=id_, name=name, status=Status.PASS, citation=citation,
-            expected=expected, observed=observed,
+            id=id_,
+            name=name,
+            status=Status.PASS,
+            citation=citation,
+            expected=expected,
+            observed=observed,
             detail="Label and application agree exactly.",
         )
 
     if normalise(observed) == normalise(expected):
         return CheckResult(
-            id=id_, name=name, status=Status.REVIEW, citation=citation,
-            expected=expected, observed=observed,
+            id=id_,
+            name=name,
+            status=Status.REVIEW,
+            citation=citation,
+            expected=expected,
+            observed=observed,
             detail=(
                 "Label and application differ only in capitalisation, punctuation or spacing. "
                 "Confirm this is the same designation."
@@ -62,8 +74,12 @@ def _text_match(
         )
 
     return CheckResult(
-        id=id_, name=name, status=Status.FAIL, citation=citation,
-        expected=expected, observed=observed,
+        id=id_,
+        name=name,
+        status=Status.FAIL,
+        citation=citation,
+        expected=expected,
+        observed=observed,
         detail=f"The application states “{expected}” but the label reads “{observed}”.",
     )
 
@@ -80,24 +96,28 @@ def check_alcohol_content(expected_pct: float | None, fields: LabelFields) -> Ch
     observed = fields.alcohol_content_pct
     if observed is None:
         return CheckResult(
-            id="MCH-03", name="Alcohol content matches application", status=Status.FAIL,
-            citation=C.CITE_ALCOHOL_TOLERANCE, expected=f"{expected_pct:g}%",
+            id="MCH-03",
+            name="Alcohol content matches application",
+            status=Status.FAIL,
+            citation=C.CITE_ALCOHOL_TOLERANCE,
+            expected=f"{expected_pct:g}%",
             detail=f"The application states {expected_pct:g}% but no alcohol content was found on the label.",
         )
 
     difference = abs(observed - expected_pct)
     within = difference <= C.ABV_TOLERANCE_POINTS
     return CheckResult(
-        id="MCH-03", name="Alcohol content matches application",
+        id="MCH-03",
+        name="Alcohol content matches application",
         status=Status.PASS if within else Status.FAIL,
         citation=C.CITE_ALCOHOL_TOLERANCE,
-        expected=f"{expected_pct:g}%", observed=f"{observed:g}%",
+        expected=f"{expected_pct:g}%",
+        observed=f"{observed:g}%",
         detail=(
             f"Label {observed:g}% against application {expected_pct:g}% — a difference of "
             f"{difference:.2g} points, within the permitted ±{C.ABV_TOLERANCE_POINTS} points."
             if within
-            else
-            f"Label {observed:g}% against application {expected_pct:g}% — a difference of "
+            else f"Label {observed:g}% against application {expected_pct:g}% — a difference of "
             f"{difference:.2g} points, outside the permitted ±{C.ABV_TOLERANCE_POINTS} points."
         ),
     )
@@ -118,18 +138,23 @@ def check_net_contents(expected: str | None, fields: LabelFields) -> CheckResult
         tolerance = max(0.5, 0.01 * max(expected_ml, observed_ml))
         if abs(expected_ml - observed_ml) <= tolerance:
             return CheckResult(
-                id="MCH-01", name="Net contents matches application", status=Status.PASS,
-                expected=expected, observed=observed_raw,
+                id="MCH-01",
+                name="Net contents matches application",
+                status=Status.PASS,
+                expected=expected,
+                observed=observed_raw,
                 detail=f"Both state {observed_ml:g} mL.",
             )
         return CheckResult(
-            id="MCH-01", name="Net contents matches application", status=Status.FAIL,
-            expected=expected, observed=observed_raw,
+            id="MCH-01",
+            name="Net contents matches application",
+            status=Status.FAIL,
+            expected=expected,
+            observed=observed_raw,
             detail=f"The application states {expected_ml:g} mL but the label states {observed_ml:g} mL.",
         )
 
-    return _text_match(id_="MCH-01", name="Net contents matches application",
-                       expected=expected, observed=observed_raw)
+    return _text_match(id_="MCH-01", name="Net contents matches application", expected=expected, observed=observed_raw)
 
 
 def check_all(fields: LabelFields, expected: ExpectedValues | None) -> list[CheckResult]:
@@ -142,16 +167,32 @@ def check_all(fields: LabelFields, expected: ExpectedValues | None) -> list[Chec
         return []
 
     candidates = [
-        _text_match(id_="MCH-01", name="Brand name matches application",
-                    expected=expected.brand_name, observed=fields.brand_name),
-        _text_match(id_="MCH-01", name="Class/type matches application",
-                    expected=expected.class_type, observed=fields.class_type),
+        _text_match(
+            id_="MCH-01",
+            name="Brand name matches application",
+            expected=expected.brand_name,
+            observed=fields.brand_name,
+        ),
+        _text_match(
+            id_="MCH-01",
+            name="Class/type matches application",
+            expected=expected.class_type,
+            observed=fields.class_type,
+        ),
         check_alcohol_content(expected.alcohol_content_pct, fields),
         check_net_contents(expected.net_contents, fields),
-        _text_match(id_="MCH-01", name="Producer matches application",
-                    expected=expected.producer_name, observed=fields.producer_name),
-        _text_match(id_="MCH-01", name="Country of origin matches application",
-                    expected=expected.country_of_origin, observed=fields.country_of_origin,
-                    citation=C.CITE_COUNTRY_OF_ORIGIN),
+        _text_match(
+            id_="MCH-01",
+            name="Producer matches application",
+            expected=expected.producer_name,
+            observed=fields.producer_name,
+        ),
+        _text_match(
+            id_="MCH-01",
+            name="Country of origin matches application",
+            expected=expected.country_of_origin,
+            observed=fields.country_of_origin,
+            citation=C.CITE_COUNTRY_OF_ORIGIN,
+        ),
     ]
     return [c for c in candidates if c is not None]

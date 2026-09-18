@@ -29,6 +29,7 @@ def compliant(**overrides) -> LabelFields:
 
 # --- overall status -----------------------------------------------------------
 
+
 def test_compliant_label_passes():
     """A label with no decidable defect must reach PASS.
 
@@ -59,6 +60,7 @@ def test_a_decidable_review_still_shows_as_review():
 
 # --- legibility short-circuit (UX-08) ----------------------------------------
 
+
 def test_illegible_image_asks_for_a_better_photograph():
     result = verify(compliant(image_legible=False, illegible_reason="heavy glare"))
     assert len(result.checks) == 1
@@ -68,6 +70,7 @@ def test_illegible_image_asks_for_a_better_photograph():
 
 
 # --- beverage type gating (§J-4) ---------------------------------------------
+
 
 def test_wine_label_is_not_failed_against_spirits_rules():
     """Part 5 rules do not govern wine; declining to judge beats judging wrongly."""
@@ -93,6 +96,7 @@ def test_spirits_rules_are_not_softened_for_spirits():
 
 # --- MCH-06 — matching is optional -------------------------------------------
 
+
 def test_verification_works_without_application_values():
     result = verify(compliant())
     assert not [c for c in result.checks if c.id.startswith("MCH")]
@@ -105,6 +109,7 @@ def test_application_values_add_comparisons():
 
 
 # --- result shape -------------------------------------------------------------
+
 
 def test_every_check_carries_an_id_and_actionable_detail():
     for check in verify(compliant(warning_text="")).checks:

@@ -26,7 +26,9 @@ def _illegible(fields: LabelFields) -> CheckResult:
     """UX-08 — mirror the action an agent already takes on an unreadable image."""
     reason = (fields.illegible_reason or "").strip()
     return CheckResult(
-        id="EXT-09", name="Label legible", status=Status.REVIEW,
+        id="EXT-09",
+        name="Label legible",
+        status=Status.REVIEW,
         detail=(
             ("This image could not be read reliably" + (f": {reason}." if reason else "."))
             + " Request a clearer photograph of the label before review."

@@ -49,9 +49,7 @@ async def _read(upload: UploadFile) -> bytes:
     content = await upload.read()
     if len(content) > settings.max_upload_bytes:
         mb = settings.max_upload_bytes // (1024 * 1024)
-        raise UploadTooLarge(
-            f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller image."
-        )
+        raise UploadTooLarge(f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller image.")
     return content
 
 
@@ -76,9 +74,7 @@ async def verify_label(
     upload = LabelUpload(
         filename=file.filename or "label",
         content=content,
-        expected=_expected(
-            brand_name, class_type, alcohol_content_pct, net_contents, producer_name, country_of_origin
-        ),
+        expected=_expected(brand_name, class_type, alcohol_content_pct, net_contents, producer_name, country_of_origin),
     )
 
     try:
@@ -86,9 +82,7 @@ async def verify_label(
     except UnsupportedUpload as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ExtractionError as exc:
-        code = (
-            status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_422_UNPROCESSABLE_ENTITY
-        )
+        code = status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_422_UNPROCESSABLE_ENTITY
         raise HTTPException(status_code=code, detail=exc.message) from exc
 
 
@@ -172,18 +166,18 @@ async def verify_batch(
         total_bytes += len(content)
         if total_bytes > settings.max_batch_bytes:
             mb = settings.max_batch_bytes // (1024 * 1024)
-            rejected.append({
-                "filename": name,
-                "message": (
-                    f"The submission exceeds {mb} MB in total, so this label and any after it "
-                    "were not processed. Split the batch."
-                ),
-            })
+            rejected.append(
+                {
+                    "filename": name,
+                    "message": (
+                        f"The submission exceeds {mb} MB in total, so this label and any after it "
+                        "were not processed. Split the batch."
+                    ),
+                }
+            )
             break
 
-        uploads.append(
-            LabelUpload(filename=name, content=content, expected=expected_map.get(name))
-        )
+        uploads.append(LabelUpload(filename=name, content=content, expected=expected_map.get(name)))
 
     return StreamingResponse(
         stream_batch(request.app.state.provider, uploads, rejected=rejected),

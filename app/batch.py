@@ -30,9 +30,7 @@ class LabelUpload:
     expected: ExpectedValues | None = None
 
 
-async def verify_one(
-    provider: ExtractionProvider, upload: LabelUpload
-) -> VerificationResult:
+async def verify_one(provider: ExtractionProvider, upload: LabelUpload) -> VerificationResult:
     """Ingest, extract, and apply the rules to a single label."""
     started = time.perf_counter()
     # prepare() is CPU-bound — PDF rasterisation, Pillow decode, LANCZOS resize,
@@ -103,7 +101,10 @@ async def stream_batch(
         for task in tasks:
             task.cancel()
 
-    yield _sse("done", {
-        "total": total,
-        "elapsed_ms": int((time.perf_counter() - started) * 1000),
-    })
+    yield _sse(
+        "done",
+        {
+            "total": total,
+            "elapsed_ms": int((time.perf_counter() - started) * 1000),
+        },
+    )

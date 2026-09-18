@@ -23,11 +23,11 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-5"
 
     max_upload_bytes: int = 10 * 1024 * 1024
-    max_batch_files: int = 300          # BAT-02
+    max_batch_files: int = 300  # BAT-02
     # Per-file limits alone allow 300 x 10 MB to be held at once. This caps
     # what one submission can materialise in memory.
     max_batch_bytes: int = 400 * 1024 * 1024
-    extraction_concurrency: int = 8     # BAT-06
+    extraction_concurrency: int = 8  # BAT-06
 
     # OPS-05 — ceiling on a public endpoint with a funded key behind it.
     # Left unset, it is derived from max_batch_files so the two cannot drift
