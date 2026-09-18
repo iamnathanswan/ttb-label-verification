@@ -1,5 +1,7 @@
 """Run the fixture corpus end to end and compare against expected.json.
 
+Covers EXT-01..EXT-09 on real images, and the full VAL and MCH suites in composition.
+
 Unit tests prove each rule fires on synthetic input. This proves the whole chain
 on real images: extraction reads the defect and the rule catches it. It runs
 either in-process or against a deployed URL, so the same evidence covers local

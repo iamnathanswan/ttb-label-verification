@@ -32,6 +32,11 @@ jobs:
       - name: Requirement coverage
         run: python3 docs/check_coverage.py
 
+      # Fails when a buildable requirement has no covering test, so an untested
+      # requirement breaks the build rather than surviving to submission.
+      - name: Traceability
+        run: python3 scripts/gen_traceability.py --check
+
   frontend:
     name: Build web bundle
     runs-on: ubuntu-latest
@@ -47,6 +52,10 @@ jobs:
       - name: Install
         working-directory: web
         run: npm ci || npm install
+
+      - name: Test
+        working-directory: web
+        run: npm test
 
       - name: Build
         working-directory: web

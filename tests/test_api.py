@@ -1,4 +1,7 @@
-"""API tests. A StubProvider stands in for the model, so no network and no key."""
+"""API tests — BAT-01, BAT-03, MCH-01, MCH-06, UX-07, OPS-05.
+
+A StubProvider stands in for the model, so the suite needs no network and no key.
+"""
 
 import json
 from pathlib import Path

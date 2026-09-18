@@ -1,4 +1,4 @@
-"""Measure extraction latency against PRF-01 (~5 s per label).
+"""Measure extraction latency against PRF-01 (~5 s per label); reports PRF-03 timings.
 
 PRF-01 is a binding requirement and the README publishes measured numbers, so
 this script is the source of those figures rather than a one-off.

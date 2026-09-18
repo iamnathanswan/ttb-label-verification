@@ -16,7 +16,8 @@ Take-home assessment for IT Specialist (AI), Treasury Common Services Center.
 | `docs/requirements.md` | 58 requirements with stable IDs. The source of truth. |
 | `docs/plan.md` | Architecture, data contracts, decisions D1–D8, risks. |
 | `docs/tasks.md` | Seven phases, 45 tasks, each carrying its REQ IDs. |
-| `docs/traceability.md` | Coverage matrix. A requirement without a passing test is not done. |
+| `docs/traceability.md` | Coverage matrix. Generated — never edit by hand. |
+| `docs/security.md` | Security review findings and what was accepted. |
 | `docs/perf.md` | Measured latency against PRF-01, and what was tried. |
 | `docs/verification.md` | Corpus results. Generated — never edit by hand. |
 
@@ -164,6 +165,9 @@ python3 docs/check_coverage.py           # spec cross-reference; must exit 0
 python scripts/benchmark.py 12           # PRF-01 latency; rewrites docs/perf.md figures
 python scripts/verify_corpus.py \
   --url $DEPLOYED --markdown docs/verification.md   # regenerate the evidence
+python scripts/gen_traceability.py       # rebuild the coverage matrix
+python scripts/gen_traceability.py --check   # fail if a requirement has no test
+cd web && npm test                       # frontend tests
 docker build -t ttb . && docker run -p 8000:8000 --env-file .env ttb
 railway up                               # deploy
 ```

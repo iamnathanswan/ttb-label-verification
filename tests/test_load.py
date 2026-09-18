@@ -1,4 +1,4 @@
-"""Batch load characteristics — BAT-02, BAT-04, BAT-06.
+"""Batch load characteristics — BAT-01, BAT-02, BAT-03, BAT-04, BAT-06, PRF-02, OPS-01, OPS-05.
 
 Runs against StubProvider, so this exercises the system properties that matter at
 scale — concurrency ceiling, per-label isolation, memory behaviour, no task leaks
