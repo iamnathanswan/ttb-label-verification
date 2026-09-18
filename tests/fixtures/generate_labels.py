@@ -26,6 +26,15 @@ WARNING_BODY = (
     "or operate machinery, and may cause health problems."
 )
 
+MARKETING_BEFORE = (
+    "Aged in charred new oak for a minimum of four summers in our rickhouse on the "
+    "banks of the Salt River, where the temperature swing does the patient work."
+)
+MARKETING_AFTER = (
+    "Best enjoyed neat or over a single large cube. Visit the distillery for tours "
+    "daily except Sunday, and ask for the barrel-proof pour at the tasting bar."
+)
+
 FONTS = {
     "regular": "/System/Library/Fonts/Supplemental/Arial.ttf",
     "bold": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
@@ -63,7 +72,7 @@ def wrap(d, x, y, text, f, max_w, fill=INK, leading=6) -> int:
     return y
 
 
-def draw_warning(d, y, *, heading: str, head_font: str, body_font: str, box: bool) -> int:
+def draw_warning(d, y, *, heading: str, head_font: str, body_font: str, box: bool) -> int:  # noqa: D401
     """Lay out the warning. Defects are introduced by varying the arguments."""
     pad = 60
     if box:
@@ -90,6 +99,8 @@ def build(
     body_font="regular",
     warning=True,
     box=True,
+    gap=46,
+    embed=False,
     country=None,
 ) -> None:
     img = Image.new("RGB", (W, H), CREAM)
@@ -107,8 +118,16 @@ def build(
         y = centre(d, y + 16, country, font("regular", 24))
 
     y = wrap(d, 60, y + 70, producer, font("regular", 19), W - 120)
-    if warning:
-        draw_warning(d, y + 46, heading=heading, head_font=head_font, body_font=body_font, box=box)
+
+    if warning and embed:
+        # "Separate and apart" fails when the warning is merely another paragraph
+        # in a block of body copy, set in the same face at the same size.
+        body = font("regular", 20)
+        y = wrap(d, 60, y + 8, MARKETING_BEFORE, body, W - 120)
+        y = wrap(d, 60, y + 2, f"{heading}{WARNING_BODY}", body, W - 120)
+        wrap(d, 60, y + 2, MARKETING_AFTER, body, W - 120)
+    elif warning:
+        draw_warning(d, y + gap, heading=heading, head_font=head_font, body_font=body_font, box=box)
 
     img.save(OUT / f"{name}.png")
 
@@ -160,7 +179,9 @@ CASES = {
     ),
     "small_bottle_50ml": (
         {"net": "50 mL"},
-        {"note": "Miniature. Selects the 1 mm type-size threshold under §16.22(b).", "expect_overall": "REVIEW"},
+        {"note": "Miniature. Selects the 1 mm type-size threshold under §16.22(b). No decidable "
+                 "defect, so PASS; the type-size caveat is advisory and reported separately.",
+         "expect_overall": "PASS"},
     ),
     "imported_no_country": (
         {
@@ -175,8 +196,10 @@ CASES = {
         },
     ),
     "warning_not_separated": (
-        {"box": False},
-        {"note": "Warning runs into surrounding text; §16.21 requires separation.", "expect_overall": "REVIEW"},
+        {"embed": True},
+        {"note": "Warning set as one more paragraph of body copy, same face and size as the "
+                 "marketing text around it; §16.21 requires it be separate and apart.",
+         "expect_overall": "FAIL", "expect_fail": ["VAL-05"]},
     ),
 }
 

@@ -35,8 +35,8 @@ CITE_COUNTRY_OF_ORIGIN: Final = "27 CFR 5.69"
 # Ordered ascending; the first bracket whose upper bound is not exceeded applies.
 # (upper bound in millilitres inclusive, minimum type size in millimetres)
 TYPE_SIZE_BRACKETS_ML: Final = (
-    (237.0, 1.0),      # containers of 237 mL (8 fl oz) or less
-    (3000.0, 2.0),     # more than 237 mL up to 3 L (101 fl oz)
+    (237.0, 1.0),  # containers of 237 mL (8 fl oz) or less
+    (3000.0, 2.0),  # more than 237 mL up to 3 L (101 fl oz)
     (float("inf"), 3.0),  # more than 3 L
 )
 

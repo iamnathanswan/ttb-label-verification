@@ -46,8 +46,8 @@
     ]
   },
   "small_bottle_50ml.png": {
-    "note": "Miniature. Selects the 1 mm type-size threshold under \u00a716.22(b).",
-    "expect_overall": "REVIEW"
+    "note": "Miniature. Selects the 1 mm type-size threshold under \u00a716.22(b). No decidable defect, so PASS; the type-size caveat is advisory and reported separately.",
+    "expect_overall": "PASS"
   },
   "imported_no_country.png": {
     "note": "Imported product with no country of origin. \u00a75.69.",
@@ -57,7 +57,10 @@
     ]
   },
   "warning_not_separated.png": {
-    "note": "Warning runs into surrounding text; \u00a716.21 requires separation.",
-    "expect_overall": "REVIEW"
+    "note": "Warning set as one more paragraph of body copy, same face and size as the marketing text around it; \u00a716.21 requires it be separate and apart.",
+    "expect_overall": "FAIL",
+    "expect_fail": [
+      "VAL-05"
+    ]
   }
 }

@@ -15,28 +15,28 @@ Status: `TODO` · `WIP` · `DONE` · `N/A` (out of scope, see `requirements.md` 
 | EXT-06 | Extract country of origin when present | — | — | TODO |
 | EXT-07 | Extract government warning statement verbatim, preserving case | — | — | TODO |
 | EXT-08 | Report a per-field confidence signal, so low-confidence reads route to... | — | — | TODO |
-| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | — | — | TODO |
+| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | `app/rules/engine.py` | `test_rules_engine.py` | DONE |
 | EXT-10 | Accept common image formats plus PDF | — | — | TODO |
-| VAL-01 | Warning text must match §16.21 exactly, word for word, after whitespace... | — | — | TODO |
-| VAL-02 | `GOVERNMENT WARNING` must appear in capital letters | — | — | TODO |
-| VAL-03 | `GOVERNMENT WARNING` must appear in bold type | — | — | TODO |
-| VAL-04 | The remainder of the warning may NOT be bold | — | — | TODO |
-| VAL-05 | Warning must be separate and apart from all other information | — | — | TODO |
-| VAL-06 | Warning must appear on a contrasting background and be legible under or... | — | — | TODO |
-| VAL-07 | Warning must not be compressed such that it is not readily legible | — | — | TODO |
-| VAL-08 | Minimum type size is a function of container volume: ≤237 mL → 1 mm; >2... | — | — | TODO |
-| VAL-09 | Max characters per inch by type size: 1 mm → 40; 2 mm → 25; 3 mm → 12 | — | — | TODO |
-| VAL-10 | Brand name, class/type, and alcohol content must appear within the same... | — | — | TODO |
-| VAL-11 | Alcohol content must be expressed as percentage by volume; proof may ad... | — | — | TODO |
-| VAL-12 | Producer name must be preceded by a function phrase — "bottled by", "di... | — | — | TODO |
-| VAL-13 | Country of origin required for imported products | — | — | TODO |
-| VAL-14 | Flag missing mandatory fields individually rather than as one aggregate... | — | — | TODO |
+| VAL-01 | Warning text must match §16.21 exactly, word for word, after whitespace... | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-02 | `GOVERNMENT WARNING` must appear in capital letters | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-03 | `GOVERNMENT WARNING` must appear in bold type | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-04 | The remainder of the warning may NOT be bold | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-05 | Warning must be separate and apart from all other information | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-06 | Warning must appear on a contrasting background and be legible under or... | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-07 | Warning must not be compressed such that it is not readily legible | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-08 | Minimum type size is a function of container volume: ≤237 mL → 1 mm; >2... | `app/rules/warning.py + units.py` | `test_rules_warning.py` | DONE |
+| VAL-09 | Max characters per inch by type size: 1 mm → 40; 2 mm → 25; 3 mm → 12 | `app/rules/warning.py` | `test_rules_warning.py` | DONE |
+| VAL-10 | Brand name, class/type, and alcohol content must appear within the same... | `app/rules/fields.py` | `test_rules_fields.py` | DONE |
+| VAL-11 | Alcohol content must be expressed as percentage by volume; proof may ad... | `app/rules/fields.py` | `test_rules_fields.py` | DONE |
+| VAL-12 | Producer name must be preceded by a function phrase — "bottled by", "di... | `app/rules/fields.py` | `test_rules_fields.py` | DONE |
+| VAL-13 | Country of origin required for imported products | `app/rules/fields.py` | `test_rules_fields.py` | DONE |
+| VAL-14 | Flag missing mandatory fields individually rather than as one aggregate... | `app/rules/fields.py` | `test_rules_fields.py` | DONE |
 | MCH-01 | Compare extracted label values against expected application values, fie... | — | — | TODO |
-| MCH-02 | Case, punctuation, and whitespace differences must not produce a hard f... | — | — | TODO |
-| MCH-03 | ABV within ±0.3 percentage points is a match | — | — | TODO |
-| MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a bare boo... | — | — | TODO |
-| MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a plain-l... | — | — | TODO |
-| MCH-06 | Expected values are optional; with none supplied the tool still runs §B... | — | — | TODO |
+| MCH-02 | Case, punctuation, and whitespace differences must not produce a hard f... | `app/rules/match.py` | `test_rules_match.py` | DONE |
+| MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/match.py` | `test_rules_match.py` | DONE |
+| MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a bare boo... | `app/rules/engine.py` | `test_rules_engine.py` | DONE |
+| MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a plain-l... | `app/rules/match.py` | `test_rules_match.py` | DONE |
+| MCH-06 | Expected values are optional; with none supplied the tool still runs §B... | `app/rules/engine.py` | `test_rules_engine.py` | DONE |
 | PRF-01 | Single label returns results in ≈5 seconds | — | — | TODO |
 | PRF-02 | Batch streams results as each label completes; first result visible wit... | — | — | TODO |
 | PRF-03 | Measured elapsed time displayed per label | — | — | TODO |

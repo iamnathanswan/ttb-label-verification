@@ -129,4 +129,9 @@ class VerificationResult(BaseModel):
 
     @property
     def reviews(self) -> list[CheckResult]:
-        return [c for c in self.checks if c.status is Status.REVIEW]
+        return [c for c in self.checks if c.status is Status.REVIEW and not c.advisory]
+
+    @property
+    def advisories(self) -> list[CheckResult]:
+        """Checks a photograph cannot decide. Constant across labels; shown, not scored."""
+        return [c for c in self.checks if c.advisory]

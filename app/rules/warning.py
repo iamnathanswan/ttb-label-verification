@@ -10,8 +10,9 @@ purpose and must not share a helper.
 import difflib
 import re
 
-from app.models import CheckResult, LabelFields, Observation, Status
+from app.models import CheckResult, LabelFields, Status
 from app.rules import constants as C
+from app.rules.observation import from_observation
 from app.rules.units import minimum_type_size_mm, parse_volume_ml
 
 
@@ -44,65 +45,37 @@ def describe_first_difference(expected: str, observed: str) -> str:
     return "no difference found"
 
 
-def _from_observation(
-    observation: Observation,
-    *,
-    id_: str,
-    name: str,
-    requirement: str,
-    citation: str,
-    advisory: bool = False,
-    negate: bool = False,
-) -> CheckResult:
-    """Map a three-valued visual observation onto a check result.
-
-    `negate=True` inverts the sense, for rules phrased as prohibitions — VAL-04
-    requires that the warning body is *not* bold.
-    """
-    satisfied = {"yes": not negate, "no": negate}.get(observation)
-
-    if observation == "unclear":
-        return CheckResult(
-            id=id_, name=name, status=Status.REVIEW, citation=citation, advisory=advisory,
-            detail=f"Could not determine from the image whether {requirement}. Confirm by inspection.",
-        )
-    if satisfied:
-        return CheckResult(
-            id=id_, name=name, status=Status.PASS, citation=citation, advisory=advisory,
-            detail=f"Confirmed that {requirement}.",
-        )
-    return CheckResult(
-        id=id_, name=name,
-        status=Status.REVIEW if advisory else Status.FAIL,
-        citation=citation, advisory=advisory,
-        detail=(
-            f"The label appears not to satisfy the requirement that {requirement}."
-            + (" A photograph cannot settle this; confirm by inspection." if advisory else "")
-        ),
-    )
-
-
 def check_warning_text(fields: LabelFields) -> CheckResult:
     """VAL-01 — the statement must match 27 CFR 16.21 exactly (whitespace aside)."""
     observed = fields.warning_text or ""
     if not observed.strip():
         return CheckResult(
-            id="VAL-01", name="Government warning present", status=Status.FAIL,
-            citation=C.CITE_WARNING_TEXT, expected=C.WARNING_STATEMENT, observed=None,
+            id="VAL-01",
+            name="Government warning present",
+            status=Status.FAIL,
+            citation=C.CITE_WARNING_TEXT,
+            expected=C.WARNING_STATEMENT,
+            observed=None,
             detail="No government health warning was found on this label. It is mandatory on all alcohol beverages.",
         )
 
     normalised = _collapse_whitespace(observed)
     if normalised == C.WARNING_STATEMENT:
         return CheckResult(
-            id="VAL-01", name="Government warning text", status=Status.PASS,
+            id="VAL-01",
+            name="Government warning text",
+            status=Status.PASS,
             citation=C.CITE_WARNING_TEXT,
             detail="The warning matches the required statement word for word.",
         )
 
     return CheckResult(
-        id="VAL-01", name="Government warning text", status=Status.FAIL,
-        citation=C.CITE_WARNING_TEXT, expected=C.WARNING_STATEMENT, observed=normalised,
+        id="VAL-01",
+        name="Government warning text",
+        status=Status.FAIL,
+        citation=C.CITE_WARNING_TEXT,
+        expected=C.WARNING_STATEMENT,
+        observed=normalised,
         detail=(
             "The warning does not match the required statement exactly — "
             + describe_first_difference(C.WARNING_STATEMENT, normalised)
@@ -118,19 +91,26 @@ def check_warning_typography(fields: LabelFields) -> list[CheckResult]:
     and forbids bolding the remainder.
     """
     return [
-        _from_observation(
-            fields.warning_heading_is_caps, id_="VAL-02", name="Warning heading in capitals",
+        from_observation(
+            fields.warning_heading_is_caps,
+            id_="VAL-02",
+            name="Warning heading in capitals",
             requirement='"GOVERNMENT WARNING" appears in capital letters',
             citation=C.CITE_WARNING_TYPOGRAPHY,
         ),
-        _from_observation(
-            fields.warning_heading_is_bold, id_="VAL-03", name="Warning heading in bold",
+        from_observation(
+            fields.warning_heading_is_bold,
+            id_="VAL-03",
+            name="Warning heading in bold",
             requirement='"GOVERNMENT WARNING" appears in bold type',
             citation=C.CITE_WARNING_TYPOGRAPHY,
         ),
-        _from_observation(
-            fields.warning_body_is_bold, id_="VAL-04", name="Warning body not bold",
-            requirement="the text after the heading is not in bold type", negate=True,
+        from_observation(
+            fields.warning_body_is_bold,
+            id_="VAL-04",
+            name="Warning body not bold",
+            requirement="the text after the heading is not in bold type",
+            negate=True,
             citation=C.CITE_WARNING_TYPOGRAPHY,
         ),
     ]
@@ -139,15 +119,20 @@ def check_warning_typography(fields: LabelFields) -> list[CheckResult]:
 def check_warning_placement(fields: LabelFields) -> list[CheckResult]:
     """VAL-05, VAL-06 — separation (16.21) and contrasting background (16.22(a)(1))."""
     return [
-        _from_observation(
-            fields.warning_visually_separated, id_="VAL-05", name="Warning set apart",
+        from_observation(
+            fields.warning_visually_separated,
+            id_="VAL-05",
+            name="Warning set apart",
             requirement="the warning is separate and apart from all other information",
             citation=C.CITE_WARNING_TEXT,
         ),
-        _from_observation(
-            fields.warning_on_contrasting_background, id_="VAL-06", name="Contrasting background",
+        from_observation(
+            fields.warning_on_contrasting_background,
+            id_="VAL-06",
+            name="Contrasting background",
             requirement="the warning appears on a contrasting background",
-            citation=C.CITE_WARNING_LEGIBILITY, advisory=True,
+            citation=C.CITE_WARNING_LEGIBILITY,
+            advisory=True,
         ),
     ]
 
@@ -162,7 +147,10 @@ def check_warning_measurements(fields: LabelFields) -> list[CheckResult]:
     volume_ml = parse_volume_ml(fields.net_contents_raw)
 
     compression = CheckResult(
-        id="VAL-07", name="Warning not compressed", status=Status.REVIEW, advisory=True,
+        id="VAL-07",
+        name="Warning not compressed",
+        status=Status.REVIEW,
+        advisory=True,
         citation=C.CITE_WARNING_COMPRESSION,
         detail=(
             "Whether the lettering is compressed below legibility cannot be judged from an image. "
@@ -177,10 +165,22 @@ def check_warning_measurements(fields: LabelFields) -> list[CheckResult]:
         )
         return [
             compression,
-            CheckResult(id="VAL-08", name="Warning type size", status=Status.REVIEW, advisory=True,
-                        citation=C.CITE_WARNING_TYPE_SIZE, detail=unknown),
-            CheckResult(id="VAL-09", name="Characters per inch", status=Status.REVIEW, advisory=True,
-                        citation=C.CITE_WARNING_CHARS_PER_INCH, detail=unknown),
+            CheckResult(
+                id="VAL-08",
+                name="Warning type size",
+                status=Status.REVIEW,
+                advisory=True,
+                citation=C.CITE_WARNING_TYPE_SIZE,
+                detail=unknown,
+            ),
+            CheckResult(
+                id="VAL-09",
+                name="Characters per inch",
+                status=Status.REVIEW,
+                advisory=True,
+                citation=C.CITE_WARNING_CHARS_PER_INCH,
+                detail=unknown,
+            ),
         ]
 
     minimum_mm = minimum_type_size_mm(volume_ml)
@@ -190,16 +190,24 @@ def check_warning_measurements(fields: LabelFields) -> list[CheckResult]:
     return [
         compression,
         CheckResult(
-            id="VAL-08", name="Warning type size", status=Status.REVIEW, advisory=True,
-            citation=C.CITE_WARNING_TYPE_SIZE, expected=f"at least {minimum_mm:g} mm",
+            id="VAL-08",
+            name="Warning type size",
+            status=Status.REVIEW,
+            advisory=True,
+            citation=C.CITE_WARNING_TYPE_SIZE,
+            expected=f"at least {minimum_mm:g} mm",
             detail=(
                 f"A container of {volume_text} requires warning text of at least {minimum_mm:g} mm. "
                 "Type size cannot be measured from an image; confirm against the physical label."
             ),
         ),
         CheckResult(
-            id="VAL-09", name="Characters per inch", status=Status.REVIEW, advisory=True,
-            citation=C.CITE_WARNING_CHARS_PER_INCH, expected=f"no more than {max_cpi} characters per inch",
+            id="VAL-09",
+            name="Characters per inch",
+            status=Status.REVIEW,
+            advisory=True,
+            citation=C.CITE_WARNING_CHARS_PER_INCH,
+            expected=f"no more than {max_cpi} characters per inch",
             detail=(
                 f"At {minimum_mm:g} mm type the warning may carry no more than {max_cpi} characters per inch. "
                 "Confirm against the physical label."
