@@ -1,105 +1,184 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import DropZone from './components/DropZone.jsx'
+import ResultCard from './components/ResultCard.jsx'
+import { downscale } from './lib/downscale.js'
+import { readEventStream } from './lib/sse.js'
+import { downloadCsv, resultsToCsv } from './lib/csv.js'
 
-const STATUS_ICON = { PASS: '✓', REVIEW: '!', FAIL: '✕' }
-
-function Check({ check }) {
-  return (
-    <li className={`check check--${check.status.toLowerCase()}`}>
-      <span className="check__status" aria-hidden="true">{STATUS_ICON[check.status]}</span>
-      <div>
-        <p className="check__name">
-          <span className="sr-only">{check.status}: </span>
-          {check.name}
-          {check.advisory && <span className="check__tag">advisory</span>}
-        </p>
-        <p className="check__detail">{check.detail}</p>
-        {check.expected && check.observed && (
-          <p className="check__compare">
-            <span>application: <code>{check.expected}</code></span>
-            <span>label: <code>{check.observed}</code></span>
-          </p>
-        )}
-        {check.citation && <p className="check__cite">{check.citation}</p>}
-      </div>
-    </li>
-  )
-}
+const EMPTY = { results: [], errors: [], progress: null, elapsed: null }
 
 export default function App() {
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
+  const [files, setFiles] = useState([])
+  const [expectedCsv, setExpectedCsv] = useState(null)
+  const [run, setRun] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
+  const [fatal, setFatal] = useState(null)
+  const [limits, setLimits] = useState({ max_batch_files: 300 })
+  const resultsRef = useRef(null)
 
-  async function onSubmit(e) {
-    e.preventDefault()
-    setBusy(true); setError(null); setResult(null)
+  useEffect(() => {
+    fetch('/api/config').then((r) => r.json()).then(setLimits).catch(() => {})
+  }, [])
+
+  const addFiles = (incoming) => {
+    setFiles((current) => {
+      const merged = [...current]
+      for (const f of incoming) {
+        if (!merged.some((e) => e.name === f.name && e.size === f.size)) merged.push(f)
+      }
+      return merged.slice(0, limits.max_batch_files)
+    })
+  }
+
+  const removeFile = (name) => setFiles((current) => current.filter((f) => f.name !== name))
+
+  async function verify() {
+    if (!files.length) return
+    setBusy(true); setFatal(null); setRun({ ...EMPTY, progress: { completed: 0, total: files.length } })
+
     try {
-      const res = await fetch('/api/verify', { method: 'POST', body: new FormData(e.target) })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.detail || 'Verification failed.')
-      setResult(body)
+      const form = new FormData()
+      for (const file of files) form.append('files', await downscale(file), file.name)
+      if (expectedCsv) form.append('expected_csv', expectedCsv, expectedCsv.name)
+
+      const response = await fetch('/api/verify/batch', { method: 'POST', body: form })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.detail || `Verification failed (HTTP ${response.status}).`)
+      }
+
+      await readEventStream(response, (event, payload) => {
+        if (event === 'result') {
+          setRun((s) => ({ ...s, results: [...s.results, payload], progress: payload.progress }))
+        } else if (event === 'error') {
+          setRun((s) => ({ ...s, errors: [...s.errors, payload], progress: payload.progress }))
+        } else if (event === 'done') {
+          setRun((s) => ({ ...s, elapsed: payload.elapsed_ms }))
+        }
+      })
+      resultsRef.current?.focus()
     } catch (err) {
-      setError(err.message)
+      setFatal(err.message)
     } finally {
       setBusy(false)
     }
   }
 
-  const decidable = result?.checks.filter((c) => !c.advisory) ?? []
-  const advisory = result?.checks.filter((c) => c.advisory) ?? []
+  const { results, errors, progress, elapsed } = run
+  const done = results.length + errors.length
+  const counts = {
+    FAIL: results.filter((r) => r.overall === 'FAIL').length,
+    REVIEW: results.filter((r) => r.overall === 'REVIEW').length,
+    PASS: results.filter((r) => r.overall === 'PASS').length,
+  }
+  // Worst first: an agent works the rejections, not the passes.
+  const order = { FAIL: 0, REVIEW: 1, PASS: 2 }
+  const sorted = [...results].sort((a, b) => order[a.overall] - order[b.overall])
 
   return (
-    <main>
-      <h1>TTB Label Verification</h1>
-      <p className="lede">
-        Check an alcohol beverage label against TTB requirements under 27 CFR Parts 5 and 16.
-      </p>
+    <>
+      <a href="#results" className="skip">Skip to results</a>
+      <main>
+        <header>
+          <h1>TTB Label Verification</h1>
+          <p className="lede">
+            Check alcohol beverage labels against the requirements in 27 CFR Parts 5 and 16.
+            Upload one label or a whole batch.
+          </p>
+        </header>
 
-      <form onSubmit={onSubmit}>
-        <label className="field">
-          <span>Label image or PDF</span>
-          <input type="file" name="file" accept="image/*,application/pdf" required />
-        </label>
-        <details>
-          <summary>Compare against application values (optional)</summary>
-          <label className="field"><span>Brand name</span><input name="brand_name" /></label>
-          <label className="field"><span>Class / type</span><input name="class_type" /></label>
-          <label className="field"><span>Alcohol content (% by volume)</span>
-            <input name="alcohol_content_pct" type="number" step="0.1" /></label>
-          <label className="field"><span>Net contents</span><input name="net_contents" /></label>
-        </details>
-        <button type="submit" disabled={busy}>{busy ? 'Checking…' : 'Check label'}</button>
-      </form>
+        <section aria-labelledby="upload-heading">
+          <h2 id="upload-heading" className="sr-only">Upload labels</h2>
+          <DropZone onFiles={addFiles} disabled={busy} maxFiles={limits.max_batch_files} />
 
-      <div aria-live="polite">
-        {error && <p className="error" role="alert">{error}</p>}
+          {files.length > 0 && (
+            <div className="queue">
+              <h3>{files.length} label{files.length > 1 ? 's' : ''} ready</h3>
+              <ul>
+                {files.map((f) => (
+                  <li key={`${f.name}-${f.size}`}>
+                    <span className="queue__name">{f.name}</span>
+                    <button type="button" onClick={() => removeFile(f.name)} disabled={busy}>
+                      Remove<span className="sr-only"> {f.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-        {result && (
-          <section className="result">
-            <h2 className={`verdict verdict--${result.overall.toLowerCase()}`}>
-              <span aria-hidden="true">{STATUS_ICON[result.overall]}</span> {result.overall}
-              <span className="verdict__meta">{result.filename} · {result.elapsed_ms} ms</span>
-            </h2>
+          <details className="panel">
+            <summary>Compare against application values (optional)</summary>
+            <p className="note">
+              Upload a CSV with a <code>filename</code> column plus any of{' '}
+              <code>brand_name</code>, <code>class_type</code>, <code>alcohol_content_pct</code>,{' '}
+              <code>net_contents</code>, <code>producer_name</code>, <code>country_of_origin</code>.
+              Without it, labels are still checked against the regulations.
+            </p>
+            <label className="field">
+              <span>Application values (CSV)</span>
+              <input type="file" accept=".csv,text/csv" disabled={busy}
+                     onChange={(e) => setExpectedCsv(e.target.files?.[0] || null)} />
+            </label>
+          </details>
 
-            <ul className="checks">
-              {decidable.map((c, i) => <Check key={i} check={c} />)}
-            </ul>
+          <button type="button" className="primary" onClick={verify} disabled={busy || !files.length}>
+            {busy ? 'Checking…' : `Check ${files.length || ''} label${files.length === 1 ? '' : 's'}`.trim()}
+          </button>
+        </section>
 
-            {advisory.length > 0 && (
-              <>
-                <h3>Requires physical inspection</h3>
-                <p className="note">
-                  These depend on measurement an image cannot supply, so they apply to every
-                  label alike and do not affect the verdict above.
-                </p>
-                <ul className="checks">
-                  {advisory.map((c, i) => <Check key={i} check={c} />)}
-                </ul>
-              </>
-            )}
-          </section>
-        )}
-      </div>
-    </main>
+        {fatal && <p className="error" role="alert">{fatal}</p>}
+
+        <section id="results" aria-labelledby="results-heading" tabIndex={-1} ref={resultsRef}>
+          <h2 id="results-heading" className="sr-only">Results</h2>
+
+          {/* Streaming updates are announced politely rather than on every card. */}
+          <p className="sr-only" aria-live="polite">
+            {busy && progress ? `Checked ${done} of ${progress.total} labels.`
+              : elapsed != null ? `Finished. ${counts.FAIL} failed, ${counts.REVIEW} need review, ${counts.PASS} passed.`
+              : ''}
+          </p>
+
+          {progress && (
+            <div className="summary">
+              <div className="progress">
+                <div className="progress__bar" style={{ width: `${(done / progress.total) * 100}%` }} />
+              </div>
+              <p className="summary__line">
+                <strong>{done} of {progress.total}</strong> checked
+                {elapsed != null && <> · {(elapsed / 1000).toFixed(1)} s total</>}
+                {done > 0 && (
+                  <>
+                    {' · '}
+                    <span className="pill pill--fail">{counts.FAIL} failed</span>
+                    <span className="pill pill--review">{counts.REVIEW} review</span>
+                    <span className="pill pill--pass">{counts.PASS} passed</span>
+                    {errors.length > 0 && <span className="pill pill--error">{errors.length} could not be read</span>}
+                  </>
+                )}
+              </p>
+              {!busy && done > 0 && (
+                <button type="button" onClick={() =>
+                  downloadCsv(`ttb-verification-${new Date().toISOString().slice(0, 10)}.csv`,
+                              resultsToCsv(results, errors))}>
+                  Download results as CSV
+                </button>
+              )}
+            </div>
+          )}
+
+          {errors.map((e, i) => (
+            <div className="card card--error" key={`err-${i}`}>
+              <p className="card__file">{e.filename}</p>
+              <p>{e.message}</p>
+            </div>
+          ))}
+
+          {sorted.map((r, i) => (
+            <ResultCard key={`${r.filename}-${i}`} result={r} defaultOpen={sorted.length === 1} />
+          ))}
+        </section>
+      </main>
+    </>
   )
 }
