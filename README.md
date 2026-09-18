@@ -37,6 +37,19 @@ the tool worse than the eye it replaced, and it gets abandoned. `REVIEW` is the 
 answer when a requirement is met in substance but not in form, or when a photograph
 cannot supply the evidence a rule needs.
 
+### The interface
+
+One screen. Drop in a label or three hundred; results stream in as each finishes, sorted
+worst-first so an agent works the rejections rather than scrolling past the passes.
+
+![Batch results — four labels checked, failures listed first](docs/images/02-batch.png)
+
+Expanding a result shows every check, the regulation behind it, and the values compared.
+Findings that depend on physical measurement sit under their own heading, marked advisory,
+and do not affect the verdict.
+
+![An expanded result showing findings and citations](docs/images/03-findings.png)
+
 ---
 
 ## Quickstart
@@ -128,7 +141,8 @@ Advisories are shown under their own heading, clearly marked.
 | | |
 |---|---|
 | Single label | **p50 4,185 ms · p95 4,242 ms** (budget ~5,000 ms), n=12 |
-| Batch of 3 | 4,645 ms total — concurrent, not 13 s sequential |
+| Batch of 10 | **8,407 ms total** — 5.3× faster than 44,707 ms sequential |
+| Under concurrency | per-label p50 4,424 ms · p95 4,843 ms |
 | Corpus | **10/10** fixtures behave as documented, against the deployed service |
 | Tests | 152 Python · 9 JavaScript · 52/52 requirements verified |
 
