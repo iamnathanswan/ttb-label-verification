@@ -172,10 +172,26 @@ and malt beverages, apply only the universally applicable checks (§16 warning) 
 flagging type-specific fields as unverified rather than failing them.
 
 **J-5 — Is an external model API acceptable given the firewall constraint?**
-Marcus describes blocked outbound traffic, but the deliverable requires a publicly
-reachable URL and the prototype is explicitly standalone. *Resolution:* use a hosted
-model for the prototype, keep it behind a provider interface (OPS-02), and document the
-Azure-hosted production path (OPS-03).
+Marcus reports that outbound traffic is blocked to many domains, and that the scanning
+vendor's ML endpoints were unreachable as a result.
+
+*Why it does not bind the prototype.* That firewall governs traffic leaving TTB's network.
+This prototype is deployed outside it, so an agent's browser makes exactly one outbound
+connection — to the application URL. The call to the inference API is made by the
+application host, never from a TTB workstation. The scanning vendor failed because its
+product called ML endpoints from inside the network; this one does not.
+
+*Why it still matters.* A production deployment would run inside TTB's environment, and
+there the inference endpoint is exactly the kind of domain that gets blocked. The remedy
+is not a firewall exception but moving inference inside the trust boundary — TTB migrated
+to Azure in 2019, so Azure-hosted inference is the natural path. This is the reason for
+the provider seam (OPS-02): switching is a constructor change, not a rewrite. The path is
+documented under OPS-03.
+
+*The residual risk, which is ours.* If TTB's firewall blocks the deployment host itself, a
+reviewer cannot reach the application at all. Nothing in the design prevents that, so the
+repository is made to stand alone: `docs/verification.md` records real results from the
+deployed service, and the README carries screenshots and local run instructions.
 
 ## K. Traceability
 
