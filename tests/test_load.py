@@ -171,3 +171,38 @@ def test_rate_limit_defaults_above_the_advertised_batch_size():
 
     s = Settings(max_batch_files=250)
     assert s.rate_limit_labels >= 250
+
+
+def test_decompression_bomb_is_refused_before_decoding():
+    """A small file that expands to an enormous raster must not reach the decoder.
+
+    136 KB of PNG can decode to 144 megapixels. Pillow warns but does not block,
+    and at the configured concurrency that is enough to exhaust the container.
+    """
+    import io as _io
+
+    from PIL import Image
+
+    from app.ingest import UnsupportedUpload, prepare
+
+    buf = _io.BytesIO()
+    Image.new("L", (12000, 12000), 128).save(buf, format="PNG", optimize=True)
+    payload = buf.getvalue()
+    assert len(payload) < 1024 * 1024, "the point is that it is a small file"
+
+    with pytest.raises(UnsupportedUpload, match="too large to process"):
+        prepare(payload)
+
+
+def test_realistic_photograph_is_still_accepted():
+    """The ceiling must not reject a normal phone photograph of a bottle."""
+    import io as _io
+
+    from PIL import Image
+
+    from app.ingest import prepare
+
+    buf = _io.BytesIO()
+    Image.new("RGB", (6000, 4000), "white").save(buf, format="JPEG", quality=80)
+    image, media_type = prepare(buf.getvalue())
+    assert media_type == "image/jpeg" and image

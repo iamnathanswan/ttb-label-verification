@@ -14,9 +14,17 @@ const COLUMNS = [
   ['Milliseconds', (r) => r.elapsed_ms],
 ]
 
+/**
+ * Spreadsheets treat a leading =, +, -, @, tab or CR as the start of a formula.
+ * Label text reaches this file from whatever is printed on an uploaded image, so
+ * a brand name of `=cmd|'/c calc'!A1` would execute on open. Prefixing with an
+ * apostrophe forces the cell to be read as text; Excel and Sheets both hide it.
+ */
+const neutralise = (text) => (/^[=+\-@\t\r]/.test(text) ? `'${text}` : text)
+
 const escape = (value) => {
-  const text = value == null ? '' : String(value)
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  const text = neutralise(value == null ? '' : String(value))
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
 export function resultsToCsv(results, errors) {
