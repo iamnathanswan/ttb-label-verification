@@ -11,6 +11,20 @@ Measured with `scripts/benchmark.py` against `tests/fixtures/labels/compliant_bo
 |---|---|---|---|---|---|
 | **4,185 ms** | **4,242 ms** | 3,998 ms | 4,317 ms | 5,000 ms | **0 / 12** |
 
+### Under concurrency
+
+Single-label figures above are sequential. A 10-label batch against the deployed service,
+`extraction_concurrency = 8`:
+
+| per-label p50 | p95 | max | over budget | batch total | sequential equivalent |
+|---|---|---|---|---|---|
+| 4,424 ms | 4,843 ms | 5,220 ms | 1 / 10 | **8,407 ms** | 44,707 ms |
+
+A 5.3× speedup, and the first result lands inside the single-label budget, which is what
+PRF-02 asks for. Per-label latency spreads slightly under load — one label of ten crossed
+5,000 ms — so the budget holds at p95 rather than absolutely. A 9,337 ms outlier was
+observed once on a cold container and did not reproduce.
+
 ### Model selection
 
 | Model | Median | Accuracy on discriminating cases |

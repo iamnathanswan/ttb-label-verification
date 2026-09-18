@@ -175,8 +175,10 @@ export default function App() {
             </div>
           ))}
 
-          {sorted.map((r) => (
-            <ResultCard key={r.filename} result={r} defaultOpen={sorted.length === 1} />
+          {/* The worst result opens on arrival so an agent sees a finding
+              immediately; the rest stay collapsed to keep a 300-label run scannable. */}
+          {sorted.map((r, i) => (
+            <ResultCard key={r.filename} result={r} defaultOpen={i === 0} />
           ))}
         </section>
       </main>
