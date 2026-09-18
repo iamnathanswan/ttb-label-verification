@@ -1,59 +1,165 @@
 """Run the fixture corpus end to end and compare against expected.json.
 
 Unit tests prove each rule fires on synthetic input. This proves the whole chain
-works on real images: extraction reads the defect, and the rule catches it.
+on real images: extraction reads the defect and the rule catches it. It runs
+either in-process or against a deployed URL, so the same evidence covers local
+behaviour and what a reviewer will actually hit.
 
-Usage: python scripts/verify_corpus.py
+    python scripts/verify_corpus.py                      # in-process
+    python scripts/verify_corpus.py --url https://…      # deployed service
+    python scripts/verify_corpus.py --markdown docs/verification.md
+
+Exit status is non-zero if any fixture departs from its documented behaviour, so
+it can gate a release.
 """
 
+import argparse
 import asyncio
 import json
+import statistics
 import sys
+import time
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-
-from app.ingest import prepare
-from app.providers.anthropic_provider import AnthropicProvider
-from app.rules.engine import verify
 
 LABELS = Path(__file__).parent.parent / "tests" / "fixtures" / "labels"
 
 
-async def main() -> int:
-    manifest = json.loads((LABELS / "expected.json").read_text())
-    provider = AnthropicProvider()
-    failures = []
+@dataclass(slots=True)
+class Outcome:
+    name: str
+    note: str
+    want_overall: str
+    want_fail: set[str]
+    got_overall: str
+    got_fail: set[str]
+    elapsed_ms: float
+    error: str | None = None
 
+    @property
+    def ok(self) -> bool:
+        return self.error is None and self.got_overall == self.want_overall and self.want_fail <= self.got_fail
+
+
+def _compare(name: str, meta: dict, body: dict, elapsed_ms: float) -> Outcome:
+    return Outcome(
+        name=name,
+        note=meta.get("note", ""),
+        want_overall=meta["expect_overall"],
+        want_fail=set(meta.get("expect_fail", [])),
+        got_overall=body["overall"],
+        got_fail={c["id"] for c in body["checks"] if c["status"] == "FAIL"},
+        elapsed_ms=elapsed_ms,
+    )
+
+
+async def run_in_process(manifest: dict) -> list[Outcome]:
+    from app.ingest import prepare
+    from app.providers.anthropic_provider import AnthropicProvider
+    from app.rules.engine import verify
+
+    provider = AnthropicProvider()
+    outcomes = []
     try:
         for name, meta in manifest.items():
+            started = time.perf_counter()
             fields, usage = await provider.extract(*prepare((LABELS / name).read_bytes()))
-            result = verify(fields, elapsed_ms=usage.get("extract_ms", 0), filename=name)
-
-            want_overall = meta.get("expect_overall")
-            want_fail = set(meta.get("expect_fail", []))
-            got_fail = {c.id for c in result.failures}
-
-            overall_ok = want_overall is None or result.overall.value == want_overall
-            rules_ok = want_fail <= got_fail
-            ok = overall_ok and rules_ok
-
-            mark = "ok  " if ok else "MISS"
-            print(f"{mark} {name:32s} {result.overall.value:6s} "
-                  f"(want {want_overall or '-':6s})  failed={sorted(got_fail) or '-'}", flush=True)
-            if not ok:
-                failures.append((name, want_overall, result.overall.value, sorted(want_fail - got_fail)))
+            result = verify(fields, filename=name)
+            outcomes.append(_compare(name, meta, result.model_dump(mode="json"),
+                                     (time.perf_counter() - started) * 1000))
+            print(_line(outcomes[-1]), flush=True)
     finally:
         await provider.aclose()
+    return outcomes
 
+
+def run_against_url(manifest: dict, url: str) -> list[Outcome]:
+    import httpx
+
+    endpoint = url.rstrip("/") + "/api/verify"
+    outcomes = []
+    with httpx.Client(timeout=120.0) as client:
+        for name, meta in manifest.items():
+            started = time.perf_counter()
+            response = client.post(
+                endpoint, files={"file": (name, (LABELS / name).read_bytes(), "image/png")}
+            )
+            elapsed = (time.perf_counter() - started) * 1000
+            if response.status_code != 200:
+                outcomes.append(Outcome(name, meta.get("note", ""), meta["expect_overall"],
+                                        set(meta.get("expect_fail", [])), "-", set(), elapsed,
+                                        error=f"HTTP {response.status_code}: {response.text[:120]}"))
+            else:
+                outcomes.append(_compare(name, meta, response.json(), elapsed))
+            print(_line(outcomes[-1]), flush=True)
+    return outcomes
+
+
+def _line(o: Outcome) -> str:
+    if o.error:
+        return f"MISS {o.name:32s} {o.error}"
+    return (f"{'ok  ' if o.ok else 'MISS'} {o.name:32s} {o.got_overall:6s} "
+            f"(want {o.want_overall:6s})  {o.elapsed_ms:6.0f}ms  failed={sorted(o.got_fail) or '-'}")
+
+
+def to_markdown(outcomes: list[Outcome], target: str) -> str:
+    times = [o.elapsed_ms for o in outcomes if not o.error]
+    passed = sum(o.ok for o in outcomes)
+    rows = "\n".join(
+        f"| `{o.name}` | {o.want_overall} | {o.got_overall} | "
+        f"{', '.join(sorted(o.got_fail)) or '—'} | {o.elapsed_ms:.0f} | {'✓' if o.ok else '✗'} |"
+        for o in outcomes
+    )
+    notes = "\n".join(f"- **`{o.name}`** — {o.note}" for o in outcomes if o.note)
+    return f"""# Corpus verification
+
+Generated by `scripts/verify_corpus.py`. Do not edit by hand.
+
+**Target:** {target}
+**Run:** {datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")}
+**Result:** {passed}/{len(outcomes)} fixtures behaved as documented
+**Latency:** median {statistics.median(times):.0f} ms, max {max(times):.0f} ms (budget 5,000 ms)
+
+Each fixture is generated by `tests/fixtures/generate_labels.py` with one deliberate
+regulatory defect, so every rule can be shown to fire on a real image rather than only
+on synthetic input.
+
+| Fixture | Expected | Actual | Rules failed | ms | |
+|---|---|---|---|---|---|
+{rows}
+
+## What each fixture tests
+
+{notes}
+"""
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--url", help="Verify against a deployed service instead of in-process")
+    parser.add_argument("--markdown", type=Path, help="Write a report to this path")
+    args = parser.parse_args()
+
+    manifest = json.loads((LABELS / "expected.json").read_text())
+    target = args.url if args.url else "in-process"
+
+    outcomes = run_against_url(manifest, args.url) if args.url else asyncio.run(run_in_process(manifest))
+
+    failed = [o for o in outcomes if not o.ok]
     print()
-    if failures:
-        print(f"{len(failures)} fixture(s) did not behave as documented:")
-        for name, want, got, missed in failures:
-            print(f"  {name}: expected {want}, got {got}" + (f"; rules not triggered: {missed}" if missed else ""))
-        return 1
+    print(f"{len(outcomes) - len(failed)}/{len(outcomes)} fixtures behaved as documented")
+    for o in failed:
+        detail = o.error or f"expected {o.want_overall}, got {o.got_overall}"
+        missed = sorted(o.want_fail - o.got_fail)
+        print(f"  {o.name}: {detail}" + (f"; rules not triggered: {missed}" if missed else ""))
 
-    print(f"all {len(manifest)} fixtures behaved as documented")
-    return 0
+    if args.markdown:
+        args.markdown.write_text(to_markdown(outcomes, target))
+        print(f"\nwrote {args.markdown}")
+
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(main())
