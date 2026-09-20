@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import DropZone from './components/DropZone.jsx'
 import ResultCard from './components/ResultCard.jsx'
 import { downscale } from './lib/downscale.js'
 import { readEventStream } from './lib/sse.js'
 import { downloadCsv, resultsToCsv } from './lib/csv.js'
+import { useFileDrop } from './lib/useFileDrop.js'
 
 const EMPTY = { results: [], errors: [], progress: null, elapsed: null }
 
@@ -20,7 +21,7 @@ export default function App() {
     fetch('/api/config').then((r) => r.json()).then(setLimits).catch(() => {})
   }, [])
 
-  const addFiles = (incoming) => {
+  const addFiles = useCallback((incoming) => {
     setFiles((current) => {
       const merged = [...current]
       for (const f of incoming) {
@@ -28,7 +29,10 @@ export default function App() {
       }
       return merged.slice(0, limits.max_batch_files)
     })
-  }
+  }, [limits.max_batch_files])
+
+  // Files may be dropped anywhere on the page, not only on the zone.
+  const dragging = useFileDrop(addFiles, { disabled: busy })
 
   const removeFile = (target) =>
     setFiles((current) => current.filter((f) => !(f.name === target.name && f.size === target.size)))
@@ -90,7 +94,12 @@ export default function App() {
 
         <section aria-labelledby="upload-heading">
           <h2 id="upload-heading" className="sr-only">Upload labels</h2>
-          <DropZone onFiles={addFiles} disabled={busy} maxFiles={limits.max_batch_files} />
+          <DropZone
+            onBrowse={addFiles}
+            disabled={busy}
+            maxFiles={limits.max_batch_files}
+            dragging={dragging}
+          />
 
           {files.length > 0 && (
             <div className="queue">

@@ -187,3 +187,9 @@ button.primary:disabled { background: #7f8794; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* While a file is over the window, make the whole page read as a target so it
+   is obvious the drop will be caught wherever it lands. */
+body:has(.drop--over) { background: #eef4fb; }
+.drop--over { border-color: var(--focus); border-style: solid; background: #e3edf9; }
+.drop--over .drop__label span { color: var(--focus); font-weight: 600; }
