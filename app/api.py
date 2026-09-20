@@ -72,42 +72,39 @@ async def verify_label(
     except UploadTooLarge as exc:
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
 
-    fields = None
-    pairing_info = None
+    # Start the application read before the label read so the two overlap. A
+    # scanned form needs its own model call; run one after the other a pair cost
+    # 7.8 s against a 5 s budget, and the label's own timer hid it by measuring
+    # only its half.
+    application_task = None
+    application_name = (application.filename or "application.pdf") if application else None
     if application is not None:
         try:
             application_bytes = await _read(application)
         except UploadTooLarge as exc:
             raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
-        try:
-            fields = await _extract_application(
-                application_bytes,
-                application.filename or "application.pdf",
-                request.app.state.provider,
-            )
-        except (NotAnApplication, UnsupportedUpload) as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-
-        outcome = pair(
-            [file.filename or "label"],
-            [Candidate(application.filename or "application.pdf", fields)],
+        application_task = asyncio.create_task(
+            _extract_application(application_bytes, application_name, request.app.state.provider)
         )
-        pairing_info = outcome.pairs[0].info
 
-    upload = LabelUpload(
-        filename=file.filename or "label",
-        content=content,
-        application=fields,
-        pairing=pairing_info,
-    )
+    upload = LabelUpload(filename=file.filename or "label", content=content)
 
     try:
-        return await verify_one(request.app.state.provider, upload)
-    except UnsupportedUpload as exc:
+        result = await verify_one(request.app.state.provider, upload, application_task=application_task)
+    except (UnsupportedUpload, NotAnApplication) as exc:
+        if application_task is not None:
+            application_task.cancel()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ExtractionError as exc:
+        if application_task is not None:
+            application_task.cancel()
         code = status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_422_UNPROCESSABLE_ENTITY
         raise HTTPException(status_code=code, detail=exc.message) from exc
+
+    if result.application is not None:
+        outcome = pair([upload.filename], [Candidate(application_name, result.application)])
+        result.pairing = outcome.pairs[0].info
+    return result
 
 
 @router.post("/verify/batch")
