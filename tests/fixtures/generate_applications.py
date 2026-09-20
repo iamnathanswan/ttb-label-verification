@@ -78,13 +78,17 @@ def fill(
                     widget.update()
 
     if flatten:
-        # A printed-and-scanned submission: no widgets, only pixels.
+        # A printed-and-scanned submission: no widgets, only pixels. Scans are
+        # JPEG-compressed in practice; inserting lossless pixmaps produced a
+        # 38 MB fixture that the upload limit rightly rejected, which would have
+        # tested nothing except the limit.
         flat = pymupdf.open()
         for page in doc:
             pix = page.get_pixmap(dpi=150)
+            jpeg = pix.tobytes("jpeg", jpg_quality=70)
             new_page = flat.new_page(width=page.rect.width, height=page.rect.height)
-            new_page.insert_image(page.rect, pixmap=pix)
-        flat.save(OUT / f"{name}.pdf")
+            new_page.insert_image(page.rect, stream=jpeg)
+        flat.save(OUT / f"{name}.pdf", deflate=True, garbage=4)
     else:
         doc.save(OUT / f"{name}.pdf")
 
