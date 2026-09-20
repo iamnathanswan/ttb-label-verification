@@ -137,9 +137,7 @@ def check_producer_function_phrase(fields: LabelFields) -> CheckResult:
     )
 
 
-def check_country_of_origin(
-    fields: LabelFields, expected: ExpectedValues | None = None
-) -> CheckResult:
+def check_country_of_origin(fields: LabelFields, expected: ExpectedValues | None = None) -> CheckResult:
     """VAL-13 — 27 CFR 5.69: required for imported products.
 
     The COLA application declares source on field 3 (Domestic or Imported). When
@@ -154,30 +152,42 @@ def check_country_of_origin(
     if declared == "domestic":
         if country:
             return CheckResult(
-                id="VAL-13", name="Country of origin", status=Status.REVIEW,
-                citation=C.CITE_COUNTRY_OF_ORIGIN, expected="domestic product", observed=country,
+                id="VAL-13",
+                name="Country of origin",
+                status=Status.REVIEW,
+                citation=C.CITE_COUNTRY_OF_ORIGIN,
+                expected="domestic product",
+                observed=country,
                 detail=(
                     f"The application declares a domestic product but the label states a country "
                     f"of origin ({country}). Confirm which is correct."
                 ),
             )
         return CheckResult(
-            id="VAL-13", name="Country of origin", status=Status.PASS,
+            id="VAL-13",
+            name="Country of origin",
+            status=Status.PASS,
             citation=C.CITE_COUNTRY_OF_ORIGIN,
             detail="Not applicable: the application declares a domestic product.",
         )
 
     if country:
         return CheckResult(
-            id="VAL-13", name="Country of origin", status=Status.PASS,
-            citation=C.CITE_COUNTRY_OF_ORIGIN, observed=country,
+            id="VAL-13",
+            name="Country of origin",
+            status=Status.PASS,
+            citation=C.CITE_COUNTRY_OF_ORIGIN,
+            observed=country,
             detail=f"Country of origin is stated: {country}.",
         )
 
     if declared == "imported":
         return CheckResult(
-            id="VAL-13", name="Country of origin", status=Status.FAIL,
-            citation=C.CITE_COUNTRY_OF_ORIGIN, expected="country of origin",
+            id="VAL-13",
+            name="Country of origin",
+            status=Status.FAIL,
+            citation=C.CITE_COUNTRY_OF_ORIGIN,
+            expected="country of origin",
             detail=(
                 "The application declares an imported product, but the label states no country "
                 "of origin. It is required for imports."
@@ -195,8 +205,11 @@ def check_country_of_origin(
     phrase = (fields.producer_function_phrase or "").lower()
     if any(marker in phrase for marker in C.IMPORTER_PHRASES):
         return CheckResult(
-            id="VAL-13", name="Country of origin", status=Status.FAIL,
-            citation=C.CITE_COUNTRY_OF_ORIGIN, expected="country of origin",
+            id="VAL-13",
+            name="Country of origin",
+            status=Status.FAIL,
+            citation=C.CITE_COUNTRY_OF_ORIGIN,
+            expected="country of origin",
             detail=(
                 "The label indicates an imported product but states no country of origin, "
                 "which is required for imports."
@@ -204,7 +217,9 @@ def check_country_of_origin(
         )
 
     return CheckResult(
-        id="VAL-13", name="Country of origin", status=Status.PASS,
+        id="VAL-13",
+        name="Country of origin",
+        status=Status.PASS,
         citation=C.CITE_COUNTRY_OF_ORIGIN,
         detail=(
             "Not applicable: nothing on the label indicates an imported product. Supplying the "

@@ -66,8 +66,11 @@ def _commodity_mismatch(fields: LabelFields, declared: str) -> CheckResult | Non
         return None
     readable = lambda value: value.replace("_", " ")  # noqa: E731
     return CheckResult(
-        id="MCH-01", name="Product type matches application", status=Status.REVIEW,
-        expected=readable(declared), observed=readable(fields.beverage_type),
+        id="MCH-01",
+        name="Product type matches application",
+        status=Status.REVIEW,
+        expected=readable(declared),
+        observed=readable(fields.beverage_type),
         detail=(
             f"The application declares {readable(declared)} but the label reads as "
             f"{readable(fields.beverage_type)}. Confirm which is correct."

@@ -82,8 +82,7 @@ def test_verify_with_application_values_adds_matching(client, label_bytes):
     r = client.post(
         "/api/verify",
         files={"file": ("l.png", label_bytes, "image/png")},
-        data={"brand_name": "OLD TOM DISTILLERY", "alcohol_content_pct": "45.0",
-              "source_of_product": "domestic"},
+        data={"brand_name": "OLD TOM DISTILLERY", "alcohol_content_pct": "45.0", "source_of_product": "domestic"},
     )
     assert [c for c in r.json()["checks"] if c["id"].startswith("MCH")]
 

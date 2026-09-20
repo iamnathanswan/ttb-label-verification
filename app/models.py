@@ -109,13 +109,13 @@ class ExpectedValues(BaseModel):
     compliance check, it simply cannot perform label-versus-application matching.
     """
 
-    brand_name: str | None = None                 # field 6
-    fanciful_name: str | None = None              # field 7
+    brand_name: str | None = None  # field 6
+    fanciful_name: str | None = None  # field 7
     source_of_product: SourceOfProduct | None = None  # field 3
-    type_of_product: BeverageType | None = None   # field 5
-    net_contents: str | None = None               # field 12
-    alcohol_content_pct: float | None = None      # field 13
-    producer_name: str | None = None              # field 8
+    type_of_product: BeverageType | None = None  # field 5
+    net_contents: str | None = None  # field 12
+    alcohol_content_pct: float | None = None  # field 13
+    producer_name: str | None = None  # field 8
 
 
 class CheckResult(BaseModel):

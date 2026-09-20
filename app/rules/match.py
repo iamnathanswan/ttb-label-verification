@@ -171,13 +171,25 @@ def check_all(fields: LabelFields, expected: ExpectedValues | None) -> list[Chec
         return []
 
     candidates = [
-        _text_match(id_="MCH-01", name="Brand name matches application",
-                    expected=expected.brand_name, observed=fields.brand_name),
-        _text_match(id_="MCH-01", name="Fanciful name matches application",
-                    expected=expected.fanciful_name, observed=fields.brand_name),
+        _text_match(
+            id_="MCH-01",
+            name="Brand name matches application",
+            expected=expected.brand_name,
+            observed=fields.brand_name,
+        ),
+        _text_match(
+            id_="MCH-01",
+            name="Fanciful name matches application",
+            expected=expected.fanciful_name,
+            observed=fields.brand_name,
+        ),
         check_alcohol_content(expected.alcohol_content_pct, fields),
         check_net_contents(expected.net_contents, fields),
-        _text_match(id_="MCH-01", name="Producer matches application",
-                    expected=expected.producer_name, observed=fields.producer_name),
+        _text_match(
+            id_="MCH-01",
+            name="Producer matches application",
+            expected=expected.producer_name,
+            observed=fields.producer_name,
+        ),
     ]
     return [c for c in candidates if c is not None]
