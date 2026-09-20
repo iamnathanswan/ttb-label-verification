@@ -162,37 +162,22 @@ def check_all(fields: LabelFields, expected: ExpectedValues | None) -> list[Chec
 
     MCH-06 — expected values are optional. Without them the compliance checks
     still run; only the matching layer is skipped.
+
+    Source and product type are not compared here: they are declarations that
+    decide *which rules apply*, so they are consumed by VAL-13 and by the
+    commodity gating in `engine.py` rather than matched field to field.
     """
     if expected is None:
         return []
 
     candidates = [
-        _text_match(
-            id_="MCH-01",
-            name="Brand name matches application",
-            expected=expected.brand_name,
-            observed=fields.brand_name,
-        ),
-        _text_match(
-            id_="MCH-01",
-            name="Class/type matches application",
-            expected=expected.class_type,
-            observed=fields.class_type,
-        ),
+        _text_match(id_="MCH-01", name="Brand name matches application",
+                    expected=expected.brand_name, observed=fields.brand_name),
+        _text_match(id_="MCH-01", name="Fanciful name matches application",
+                    expected=expected.fanciful_name, observed=fields.brand_name),
         check_alcohol_content(expected.alcohol_content_pct, fields),
         check_net_contents(expected.net_contents, fields),
-        _text_match(
-            id_="MCH-01",
-            name="Producer matches application",
-            expected=expected.producer_name,
-            observed=fields.producer_name,
-        ),
-        _text_match(
-            id_="MCH-01",
-            name="Country of origin matches application",
-            expected=expected.country_of_origin,
-            observed=fields.country_of_origin,
-            citation=C.CITE_COUNTRY_OF_ORIGIN,
-        ),
+        _text_match(id_="MCH-01", name="Producer matches application",
+                    expected=expected.producer_name, observed=fields.producer_name),
     ]
     return [c for c in candidates if c is not None]

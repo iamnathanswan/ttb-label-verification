@@ -87,19 +87,35 @@ class LabelFields(BaseModel):
     )
 
 
+SourceOfProduct = Literal["domestic", "imported"]
+
+
 class ExpectedValues(BaseModel):
-    """Values from the COLA application, when supplied.
+    """Values declared on the COLA application, TTB F 5100.31.
+
+    The field set follows the form rather than the interview notes. Two
+    consequences are worth stating:
+
+    - There is no class/type field on the form. TTB instructs applicants not to
+      supply the class/type designation, and doing so gets the application
+      returned for correction, so there is nothing to compare a label against.
+      The designation must still appear on the label; VAL-14 checks that.
+    - There is no country-of-origin field either. The form declares *source*
+      (field 3, Domestic or Imported), and country of origin is a label
+      requirement under §5.69. So source drives VAL-13 rather than being
+      compared to it.
 
     Optional throughout (MCH-06): without these the tool still runs every
     compliance check, it simply cannot perform label-versus-application matching.
     """
 
-    brand_name: str | None = None
-    class_type: str | None = None
-    alcohol_content_pct: float | None = None
-    net_contents: str | None = None
-    producer_name: str | None = None
-    country_of_origin: str | None = None
+    brand_name: str | None = None                 # field 6
+    fanciful_name: str | None = None              # field 7
+    source_of_product: SourceOfProduct | None = None  # field 3
+    type_of_product: BeverageType | None = None   # field 5
+    net_contents: str | None = None               # field 12
+    alcohol_content_pct: float | None = None      # field 13
+    producer_name: str | None = None              # field 8
 
 
 class CheckResult(BaseModel):

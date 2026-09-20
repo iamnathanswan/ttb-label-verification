@@ -18,12 +18,28 @@ Reads the printed information off a label image, then checks it against the regu
   body *not* bold per §16.22(a)(2), set apart from other information
 - **Mandatory fields** — brand name, class/type, alcohol content, net contents, producer
   name with its function phrase, country of origin for imports
-- **Against the application** — optionally compare the label to the values on the COLA
-  submission, with the ±0.3 percentage-point alcohol tolerance §5.65(c) allows
+- **Against the application** — optionally compare the label to the values declared on the
+  COLA application (TTB F 5100.31), with the ±0.3 percentage-point alcohol tolerance
+  §5.65(c) allows
 
 Every finding names the regulation it came from. Results stream in as each label
 finishes, so an agent starts work on a 300-label batch within about four seconds rather
 than waiting for the whole run.
+
+### Matching against the application
+
+The field set follows the form rather than the interview notes, which changed two things.
+
+The COLA application has **no class/type field** — TTB instructs applicants not to supply
+the designation, and doing so gets the application returned for correction. So there is
+nothing to compare a label's class/type against; it must still appear on the label, which
+`VAL-14` checks.
+
+It does have two fields worth more than any string comparison. **Field 3 declares Domestic
+or Imported**, which settles the country-of-origin requirement instead of inferring it from
+the producer's wording. **Field 5 declares the commodity**, which decides whether Part 5
+rules apply at all rather than guessing from the label — and a label that reads as something
+other than what was declared is itself a finding.
 
 ### Three results, not two
 
@@ -213,9 +229,11 @@ survive questioning.
 **Only distilled spirits rules are complete.** Wine and malt beverage labels get the
 warning checks and are otherwise marked unverified.
 
-**Import status is inferred from the function phrase.** "Imported by" triggers the
-country-of-origin requirement. A label that is imported but does not say so will not be
-caught.
+**Import status is inferred when the application is not supplied.** Field 3 of the COLA
+application declares Domestic or Imported, and when it is given the country-of-origin
+requirement is settled definitively. Without it, import status can only be inferred from
+the producer's function phrase, so an imported product whose label never says so will not
+be caught.
 
 **Extraction is not infallible.** The corpus covers ten deliberate defects and passes, but
 a sufficiently unusual layout may be misread. Low-confidence fields are reported, and the

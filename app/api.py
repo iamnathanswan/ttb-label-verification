@@ -21,23 +21,14 @@ from app.providers.base import ExtractionError
 router = APIRouter(prefix="/api")
 
 
-def _expected(
-    brand_name: str | None,
-    class_type: str | None,
-    alcohol_content_pct: float | None,
-    net_contents: str | None,
-    producer_name: str | None,
-    country_of_origin: str | None,
-) -> ExpectedValues | None:
-    """Build application values, or None when the agent supplied none (MCH-06)."""
-    values = ExpectedValues(
-        brand_name=brand_name or None,
-        class_type=class_type or None,
-        alcohol_content_pct=alcohol_content_pct,
-        net_contents=net_contents or None,
-        producer_name=producer_name or None,
-        country_of_origin=country_of_origin or None,
-    )
+def _expected(**raw: object) -> ExpectedValues | None:
+    """Build application values, or None when the agent supplied none (MCH-06).
+
+    Field names follow TTB F 5100.31; see `ExpectedValues` for why class/type and
+    country of origin are not among them.
+    """
+    cleaned = {k: (v or None) for k, v in raw.items()}
+    values = ExpectedValues(**cleaned)
     return values if values.model_dump(exclude_none=True) else None
 
 
@@ -58,11 +49,12 @@ async def verify_label(
     request: Request,
     file: Annotated[UploadFile, File(description="Label image or PDF")],
     brand_name: Annotated[str | None, Form()] = None,
-    class_type: Annotated[str | None, Form()] = None,
-    alcohol_content_pct: Annotated[float | None, Form()] = None,
+    fanciful_name: Annotated[str | None, Form()] = None,
+    source_of_product: Annotated[str | None, Form()] = None,
+    type_of_product: Annotated[str | None, Form()] = None,
     net_contents: Annotated[str | None, Form()] = None,
+    alcohol_content_pct: Annotated[float | None, Form()] = None,
     producer_name: Annotated[str | None, Form()] = None,
-    country_of_origin: Annotated[str | None, Form()] = None,
 ) -> VerificationResult:
     """Verify one label. Application values are optional (MCH-06)."""
     enforce(request, cost=1)
@@ -74,7 +66,15 @@ async def verify_label(
     upload = LabelUpload(
         filename=file.filename or "label",
         content=content,
-        expected=_expected(brand_name, class_type, alcohol_content_pct, net_contents, producer_name, country_of_origin),
+        expected=_expected(
+            brand_name=brand_name,
+            fanciful_name=fanciful_name,
+            source_of_product=source_of_product,
+            type_of_product=type_of_product,
+            net_contents=net_contents,
+            alcohol_content_pct=alcohol_content_pct,
+            producer_name=producer_name,
+        ),
     )
 
     try:
@@ -111,13 +111,28 @@ def _expected_from_csv(raw: bytes) -> dict[str, ExpectedValues]:
             abv_value = float(abv) if abv else None
         except ValueError:
             abv_value = None
+        source = (pick(row, "source_of_product", "source") or "").lower() or None
+        product_type = (pick(row, "type_of_product", "product_type") or "").lower() or None
+        if product_type:
+            product_type = {
+                "wine": "wine",
+                "distilled spirits": "distilled_spirits",
+                "distilled_spirits": "distilled_spirits",
+                "spirits": "distilled_spirits",
+                "malt beverages": "malt_beverage",
+                "malt beverage": "malt_beverage",
+                "malt_beverage": "malt_beverage",
+                "beer": "malt_beverage",
+            }.get(product_type)
+
         mapping[filename] = ExpectedValues(
             brand_name=pick(row, "brand_name", "brand"),
-            class_type=pick(row, "class_type", "class", "type"),
-            alcohol_content_pct=abv_value,
+            fanciful_name=pick(row, "fanciful_name", "fanciful"),
+            source_of_product=source if source in {"domestic", "imported"} else None,
+            type_of_product=product_type,
             net_contents=pick(row, "net_contents", "net_content", "volume"),
+            alcohol_content_pct=abv_value,
             producer_name=pick(row, "producer_name", "producer", "bottler"),
-            country_of_origin=pick(row, "country_of_origin", "country"),
         )
     return mapping
 

@@ -36,9 +36,9 @@ and the submission itself.
 | VAL-10 | Brand name, class/type, and alcohol content must appear within… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_rules_fields.py` | test |
 | VAL-11 | Alcohol content must be expressed as percentage by volume; proo… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
 | VAL-12 | Producer name must be preceded by a function phrase — "bottled… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
-| VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_fields.py` | test |
-| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_api.py`<br>`test_review_regressions.py`<br>`test_rules_fields.py` | test |
-| MCH-01 | Compare extracted label values against expected application val… | `app/api.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
+| VAL-13 | Country of origin required for imported products | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `generate_labels.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
+| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py` | `test_api.py`<br>`test_review_regressions.py`<br>`test_rules_fields.py` | test |
+| MCH-01 | Compare extracted label values against expected application val… | `app/api.py`<br>`app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce… | — | `test_rules_match.py` | test |
 | MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py`<br>`app/rules/match.py` | `test_rules_match.py` | test |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a… | `app/models.py` | `test_rules_match.py` | test |

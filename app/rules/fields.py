@@ -6,7 +6,7 @@ marked unverified rather than failed against rules that do not apply to it
 (docs/requirements.md §J-4).
 """
 
-from app.models import CheckResult, LabelFields, Status
+from app.models import CheckResult, ExpectedValues, LabelFields, Status
 from app.rules import constants as C
 from app.rules.observation import from_observation
 
@@ -137,34 +137,66 @@ def check_producer_function_phrase(fields: LabelFields) -> CheckResult:
     )
 
 
-def check_country_of_origin(fields: LabelFields) -> CheckResult:
+def check_country_of_origin(
+    fields: LabelFields, expected: ExpectedValues | None = None
+) -> CheckResult:
     """VAL-13 — 27 CFR 5.69: required for imported products.
 
-    Import status is inferred from the function phrase, which is the only signal a
-    label reliably carries. When nothing indicates importation the rule does not
-    apply, and saying so is more useful than a silent pass.
+    The COLA application declares source on field 3 (Domestic or Imported). When
+    that declaration is available it is authoritative, and a label with no
+    country of origin against an application declaring an import is a definite
+    failure. Without it, import status can only be inferred from the producer's
+    function phrase — which misses an imported product whose label never says so.
     """
-    phrase = (fields.producer_function_phrase or "").lower()
-    looks_imported = any(marker in phrase for marker in C.IMPORTER_PHRASES)
     country = (fields.country_of_origin or "").strip()
+    declared = expected.source_of_product if expected else None
+
+    if declared == "domestic":
+        if country:
+            return CheckResult(
+                id="VAL-13", name="Country of origin", status=Status.REVIEW,
+                citation=C.CITE_COUNTRY_OF_ORIGIN, expected="domestic product", observed=country,
+                detail=(
+                    f"The application declares a domestic product but the label states a country "
+                    f"of origin ({country}). Confirm which is correct."
+                ),
+            )
+        return CheckResult(
+            id="VAL-13", name="Country of origin", status=Status.PASS,
+            citation=C.CITE_COUNTRY_OF_ORIGIN,
+            detail="Not applicable: the application declares a domestic product.",
+        )
 
     if country:
         return CheckResult(
-            id="VAL-13",
-            name="Country of origin",
-            status=Status.PASS,
-            citation=C.CITE_COUNTRY_OF_ORIGIN,
-            observed=country,
+            id="VAL-13", name="Country of origin", status=Status.PASS,
+            citation=C.CITE_COUNTRY_OF_ORIGIN, observed=country,
             detail=f"Country of origin is stated: {country}.",
         )
 
-    if looks_imported:
+    if declared == "imported":
         return CheckResult(
-            id="VAL-13",
-            name="Country of origin",
-            status=Status.FAIL,
-            citation=C.CITE_COUNTRY_OF_ORIGIN,
-            expected="country of origin",
+            id="VAL-13", name="Country of origin", status=Status.FAIL,
+            citation=C.CITE_COUNTRY_OF_ORIGIN, expected="country of origin",
+            detail=(
+                "The application declares an imported product, but the label states no country "
+                "of origin. It is required for imports."
+            ),
+        )
+
+    # No declaration to rely on: fall back to what the label itself suggests.
+    #
+    # The final branch returns PASS rather than REVIEW deliberately. Most labels
+    # are domestic and carry no application data, so returning REVIEW there would
+    # put every such label into review and make PASS unreachable — the same
+    # failure that removing advisory checks from the verdict was meant to fix.
+    # The residual risk, an import whose label never says so, is a documented
+    # limitation rather than a permanent hedge on every result.
+    phrase = (fields.producer_function_phrase or "").lower()
+    if any(marker in phrase for marker in C.IMPORTER_PHRASES):
+        return CheckResult(
+            id="VAL-13", name="Country of origin", status=Status.FAIL,
+            citation=C.CITE_COUNTRY_OF_ORIGIN, expected="country of origin",
             detail=(
                 "The label indicates an imported product but states no country of origin, "
                 "which is required for imports."
@@ -172,11 +204,12 @@ def check_country_of_origin(fields: LabelFields) -> CheckResult:
         )
 
     return CheckResult(
-        id="VAL-13",
-        name="Country of origin",
-        status=Status.PASS,
+        id="VAL-13", name="Country of origin", status=Status.PASS,
         citation=C.CITE_COUNTRY_OF_ORIGIN,
-        detail="Not applicable: nothing on the label indicates an imported product.",
+        detail=(
+            "Not applicable: nothing on the label indicates an imported product. Supplying the "
+            "application's source declaration would settle this definitively."
+        ),
     )
 
 
@@ -193,12 +226,12 @@ def check_field_of_vision(fields: LabelFields) -> CheckResult:
     )
 
 
-def check_all(fields: LabelFields) -> list[CheckResult]:
+def check_all(fields: LabelFields, expected: ExpectedValues | None = None) -> list[CheckResult]:
     """Every mandatory-field check, VAL-10 through VAL-14."""
     return [
         check_field_of_vision(fields),
         check_alcohol_content(fields),
         check_producer_function_phrase(fields),
-        check_country_of_origin(fields),
+        check_country_of_origin(fields, expected),
         *check_mandatory_present(fields),
     ]

@@ -11,6 +11,11 @@ const EMPTY = { results: [], errors: [], progress: null, elapsed: null }
 export default function App() {
   const [files, setFiles] = useState([])
   const [expectedCsv, setExpectedCsv] = useState(null)
+  const [expected, setExpected] = useState({
+    brand_name: '', fanciful_name: '', source_of_product: '', type_of_product: '',
+    net_contents: '', alcohol_content_pct: '', producer_name: '',
+  })
+  const setExpectedField = (name, value) => setExpected((e) => ({ ...e, [name]: value }))
   const [run, setRun] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
   const [fatal, setFatal] = useState(null)
@@ -45,6 +50,17 @@ export default function App() {
       const form = new FormData()
       for (const file of files) form.append('files', await downscale(file), file.name)
       if (expectedCsv) form.append('expected_csv', expectedCsv, expectedCsv.name)
+
+      // A single label takes typed values; a batch takes them from the CSV.
+      if (files.length === 1) {
+        const filled = Object.entries(expected).filter(([, v]) => String(v).trim())
+        if (filled.length) {
+          const header = filled.map(([k]) => k).join(',')
+          const row = filled.map(([, v]) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+          const csv = `filename,${header}\n"${files[0].name}",${row}\n`
+          form.append('expected_csv', new Blob([csv], { type: 'text/csv' }), 'typed.csv')
+        }
+      }
 
       const response = await fetch('/api/verify/batch', { method: 'POST', body: form })
       if (!response.ok) {
@@ -120,16 +136,79 @@ export default function App() {
           <details className="panel">
             <summary>Compare against application values (optional)</summary>
             <p className="note">
-              Upload a CSV with a <code>filename</code> column plus any of{' '}
-              <code>brand_name</code>, <code>class_type</code>, <code>alcohol_content_pct</code>,{' '}
-              <code>net_contents</code>, <code>producer_name</code>, <code>country_of_origin</code>.
-              Without it, labels are still checked against the regulations.
+              Values declared on the COLA application (TTB F 5100.31). Supplying them
+              checks the label against what was submitted; without them, labels are still
+              checked against the regulations.
             </p>
-            <label className="field">
-              <span>Application values (CSV)</span>
-              <input type="file" accept=".csv,text/csv" disabled={busy}
-                     onChange={(e) => setExpectedCsv(e.target.files?.[0] || null)} />
-            </label>
+
+            {files.length > 1 ? (
+              <>
+                <p className="note">
+                  For a batch, upload a CSV with a <code>filename</code> column plus any of{' '}
+                  <code>brand_name</code>, <code>fanciful_name</code>,{' '}
+                  <code>source_of_product</code>, <code>type_of_product</code>,{' '}
+                  <code>net_contents</code>, <code>alcohol_content_pct</code>,{' '}
+                  <code>producer_name</code>.
+                </p>
+                <label className="field">
+                  <span>Application values (CSV)</span>
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    disabled={busy}
+                    onChange={(e) => setExpectedCsv(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </>
+            ) : (
+              <div className="fields">
+                <label className="field">
+                  <span>Brand name <small>(field 6)</small></span>
+                  <input name="brand_name" value={expected.brand_name}
+                         onChange={(e) => setExpectedField('brand_name', e.target.value)} disabled={busy} />
+                </label>
+                <label className="field">
+                  <span>Fanciful name <small>(field 7)</small></span>
+                  <input name="fanciful_name" value={expected.fanciful_name}
+                         onChange={(e) => setExpectedField('fanciful_name', e.target.value)} disabled={busy} />
+                </label>
+                <label className="field">
+                  <span>Source of product <small>(field 3)</small></span>
+                  <select name="source_of_product" value={expected.source_of_product}
+                          onChange={(e) => setExpectedField('source_of_product', e.target.value)} disabled={busy}>
+                    <option value="">Not specified</option>
+                    <option value="domestic">Domestic</option>
+                    <option value="imported">Imported</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Type of product <small>(field 5)</small></span>
+                  <select name="type_of_product" value={expected.type_of_product}
+                          onChange={(e) => setExpectedField('type_of_product', e.target.value)} disabled={busy}>
+                    <option value="">Not specified</option>
+                    <option value="wine">Wine</option>
+                    <option value="distilled_spirits">Distilled spirits</option>
+                    <option value="malt_beverage">Malt beverages</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Net contents <small>(field 12)</small></span>
+                  <input name="net_contents" placeholder="750 mL" value={expected.net_contents}
+                         onChange={(e) => setExpectedField('net_contents', e.target.value)} disabled={busy} />
+                </label>
+                <label className="field">
+                  <span>Alcohol content <small>(field 13)</small></span>
+                  <input name="alcohol_content_pct" type="number" step="0.1" placeholder="45.0"
+                         value={expected.alcohol_content_pct}
+                         onChange={(e) => setExpectedField('alcohol_content_pct', e.target.value)} disabled={busy} />
+                </label>
+                <label className="field field--wide">
+                  <span>Producer name and address <small>(field 8)</small></span>
+                  <input name="producer_name" value={expected.producer_name}
+                         onChange={(e) => setExpectedField('producer_name', e.target.value)} disabled={busy} />
+                </label>
+              </div>
+            )}
           </details>
 
           <button type="button" className="primary" onClick={verify} disabled={busy || !files.length}>

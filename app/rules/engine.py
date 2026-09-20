@@ -55,6 +55,26 @@ def _soften_type_specific(check: CheckResult, beverage_type: str) -> CheckResult
     )
 
 
+def _commodity_mismatch(fields: LabelFields, declared: str) -> CheckResult | None:
+    """Flag a label that does not look like the commodity the application declares.
+
+    Field 5 of the COLA application declares the product type. If the label reads
+    as something else, one of the two is wrong — most often the extraction, but
+    occasionally the application — and either is worth a person's attention.
+    """
+    if fields.beverage_type == "unknown" or fields.beverage_type == declared:
+        return None
+    readable = lambda value: value.replace("_", " ")  # noqa: E731
+    return CheckResult(
+        id="MCH-01", name="Product type matches application", status=Status.REVIEW,
+        expected=readable(declared), observed=readable(fields.beverage_type),
+        detail=(
+            f"The application declares {readable(declared)} but the label reads as "
+            f"{readable(fields.beverage_type)}. Confirm which is correct."
+        ),
+    )
+
+
 def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> list[CheckResult]:
     """Run every applicable rule and return the findings."""
     if not fields.image_legible:
@@ -63,10 +83,20 @@ def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> lis
     checks: list[CheckResult] = []
     checks.extend(warning_rules.check_all(fields))  # Part 16 — universal
 
-    type_checks = field_rules.check_all(fields)
-    if fields.beverage_type not in FULLY_IMPLEMENTED_TYPES:
+    # The application's declared type is authoritative where it is supplied;
+    # otherwise the commodity can only be inferred from the label.
+    declared_type = expected.type_of_product if expected else None
+    effective_type = declared_type or fields.beverage_type
+
+    type_checks = field_rules.check_all(fields, expected)
+    if declared_type:
+        mismatch = _commodity_mismatch(fields, declared_type)
+        if mismatch:
+            checks.append(mismatch)
+
+    if effective_type not in FULLY_IMPLEMENTED_TYPES:
         type_checks = [
-            _soften_type_specific(c, fields.beverage_type)
+            _soften_type_specific(c, effective_type)
             if c.id in TYPE_SPECIFIC_CHECKS or c.name in PART_5_MANDATORY_FIELDS
             else c
             for c in type_checks

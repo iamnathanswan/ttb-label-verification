@@ -93,6 +93,12 @@ extract cannot have its type size evaluated — return `REVIEW`, not a guess.
 between stated and actual content, which governs `MCH-03` when matching a label against an
 application. It is not licence to round, reformat, or accept a missing ABV statement.
 
+**Application values follow the form, not the interviews.** `ExpectedValues` mirrors
+TTB F 5100.31. There is no class/type field on it and no country-of-origin field; field 3
+declares Domestic or Imported and field 5 declares the commodity. Those two are
+declarations that decide *which rules apply* — they drive `VAL-13` and the commodity
+gating rather than being compared field to field.
+
 **Beverage type gates which rules apply.** Parts 4 (wine) and 7 (malt beverages) differ
 from Part 5 (distilled spirits). For non-spirits, run the Part 16 warning checks — which
 are universal — and mark type-specific fields unverified rather than failing them

@@ -24,6 +24,12 @@ def named(results, fragment):
 # --- MCH-06 — expected values are optional -----------------------------------
 
 
+def test_source_and_type_are_not_matched_field_to_field():
+    """They decide which rules apply; VAL-13 and the engine consume them."""
+    results = check_all(labelled(), ExpectedValues(source_of_product="imported", type_of_product="wine"))
+    assert results == []
+
+
 def test_no_application_values_produces_no_comparisons():
     assert check_all(labelled(), None) == []
 
