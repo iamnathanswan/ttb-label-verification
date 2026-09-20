@@ -52,9 +52,7 @@ async def verify_one(
     image, media_type = await asyncio.to_thread(prepare, upload.content)
 
     if application_task is not None:
-        (fields, usage), application = await asyncio.gather(
-            provider.extract(image, media_type), application_task
-        )
+        (fields, usage), application = await asyncio.gather(provider.extract(image, media_type), application_task)
     else:
         fields, usage = await provider.extract(image, media_type)
         application = upload.application

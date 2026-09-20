@@ -141,9 +141,7 @@ async def verify_batch(
     # Concurrently: a batch of scanned forms would otherwise read one at a time
     # before any label is touched.
     candidates: list[Candidate] = []
-    for outcome_item in await asyncio.gather(
-        *(read_application(u) for u in (applications or []))
-    ):
+    for outcome_item in await asyncio.gather(*(read_application(u) for u in (applications or []))):
         (candidates if isinstance(outcome_item, Candidate) else rejected).append(outcome_item)
 
     # A file too large for the per-file ceiling becomes one rejected label, not a
