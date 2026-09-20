@@ -89,33 +89,65 @@ class LabelFields(BaseModel):
 
 SourceOfProduct = Literal["domestic", "imported"]
 
+ExtractionSource = Literal["form_fields", "vision"]
+"""How an application was read.
 
-class ExpectedValues(BaseModel):
-    """Values declared on the COLA application, TTB F 5100.31.
+`form_fields` means the values came straight out of the PDF's AcroForm widgets —
+exact strings, no inference. `vision` means the form was scanned or flattened and
+had to be read as an image. An agent should be told which, because the two carry
+very different confidence.
+"""
 
-    The field set follows the form rather than the interview notes. Two
-    consequences are worth stating:
 
-    - There is no class/type field on the form. TTB instructs applicants not to
-      supply the class/type designation, and doing so gets the application
-      returned for correction, so there is nothing to compare a label against.
-      The designation must still appear on the label; VAL-14 checks that.
-    - There is no country-of-origin field either. The form declares *source*
-      (field 3, Domestic or Imported), and country of origin is a label
-      requirement under §5.69. So source drives VAL-13 rather than being
-      compared to it.
+class ApplicationFields(BaseModel):
+    """What the COLA application declares. TTB F 5100.31.
 
-    Optional throughout (MCH-06): without these the tool still runs every
-    compliance check, it simply cannot perform label-versus-application matching.
+    The field set follows the current form. Two absences are deliberate:
+
+    - **No class/type.** TTB instructs applicants not to supply the designation and
+      returns applications that do, so there is nothing to compare against. The
+      designation must still appear on the label; VAL-14 checks that.
+    - **No net contents or alcohol content.** Both were removed from the form —
+      field 15 asks for container wording only where it does *not* appear on the
+      labels. TTB reads them off the label, and so do we (VAL-11, VAL-14, VAL-08).
     """
 
-    brand_name: str | None = None  # field 6
-    fanciful_name: str | None = None  # field 7
-    source_of_product: SourceOfProduct | None = None  # field 3
-    type_of_product: BeverageType | None = None  # field 5
-    net_contents: str | None = None  # field 12
-    alcohol_content_pct: float | None = None  # field 13
-    producer_name: str | None = None  # field 8
+    serial_number: str = Field("", description="Field 4, assembled from year and serial boxes")
+    permit_number: str = Field("", description="Field 2, plant registry / basic permit / brewer's number")
+    source_of_product: SourceOfProduct | None = Field(None, description="Field 3")
+    type_of_product: BeverageType | None = Field(None, description="Field 5")
+    brand_name: str = Field("", description="Field 6")
+    fanciful_name: str = Field("", description="Field 7")
+    applicant_name: str = Field("", description="Field 8, name and address of applicant")
+    ttb_id: str = Field("", description="TTB ID, where the form carries one")
+
+    extraction_source: ExtractionSource = Field("form_fields")
+    filename: str = Field("", description="The file this was read from")
+
+    @property
+    def is_empty(self) -> bool:
+        """True when nothing usable was read — an unfilled or unreadable form."""
+        return not any((self.brand_name, self.applicant_name, self.serial_number, self.source_of_product))
+
+
+class PairingRule(StrEnum):
+    """How a label was matched to an application. Reported on every result.
+
+    An agent should never have to guess why two documents were treated as a pair.
+    """
+
+    SOLE_PAIR = "sole_pair"
+    SERIAL_IN_FILENAME = "serial_in_filename"
+    SHARED_FILENAME_STEM = "shared_filename_stem"
+    BRAND_NAME = "brand_name"
+    UNPAIRED = "unpaired"
+
+
+class PairingInfo(BaseModel):
+    rule: PairingRule
+    application_filename: str | None = None
+    serial_number: str | None = None
+    detail: str = ""
 
 
 class CheckResult(BaseModel):
@@ -135,6 +167,10 @@ class VerificationResult(BaseModel):
     overall: Status
     checks: list[CheckResult]
     fields: LabelFields
+    application: ApplicationFields | None = Field(
+        None, description="What the COLA application declared, when one was paired"
+    )
+    pairing: PairingInfo | None = Field(None, description="How the application was matched")
     elapsed_ms: int = Field(description="End-to-end wall time for this label (PRF-03)")
     filename: str | None = None
     usage: dict[str, int] = Field(default_factory=dict, description="Token usage, incl. cache hits")
