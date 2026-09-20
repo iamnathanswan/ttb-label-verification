@@ -25,6 +25,25 @@ PRF-02 asks for. Per-label latency spreads slightly under load — one label of 
 5,000 ms — so the budget holds at p95 rather than absolutely. A 9,337 ms outlier was
 observed once on a cold container and did not reproduce.
 
+### With an application paired
+
+Wall time from a client, deployed service, including upload and transit:
+
+| Application | Read by | Wall |
+|---|---|---|
+| Digitally completed | form fields | **4,534–4,871 ms** |
+| Printed and scanned | vision | **4,915 ms** |
+
+A digital application is read from its AcroForm widgets in about 10 ms, so pairing one
+costs almost nothing. A scanned form needs a second model call, and that read overlaps the
+label's rather than following it — sequentially the same pair took **7.8 s**.
+
+That measurement was nearly missed. `elapsed_ms` starts inside `verify_one`, so while the
+application was read beforehand the timer covered only the label and reported ~4.2 s for a
+request taking 7.8 s. The figure looked healthy and the request was not. It was found by
+reproducing the gap against a local server and comparing wall time to the reported time;
+both now agree to within 10 ms.
+
 ### Model selection
 
 | Model | Median | Accuracy on discriminating cases |

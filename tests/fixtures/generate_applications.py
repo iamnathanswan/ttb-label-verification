@@ -96,23 +96,29 @@ def fill(
 CASES = {
     "24-0417-application": (
         {},
-        {"pairs_with": "compliant_bourbon.png", "note": "Matches the compliant bourbon label exactly. The clean path."},
+        {
+            "pairs_with": "compliant_bourbon.png",
+            "expect_overall": "PASS",
+            "note": "Matches the compliant bourbon label exactly. The clean path.",
+        },
     ),
     "24-0418-application-case-differs": (
         {"serial": "0418", "brand": "Old Tom Distillery"},
         {
             "pairs_with": "compliant_bourbon.png",
+            "expect_overall": "REVIEW",
             "note": "Brand differs from the label only in capitalisation. Dave's case: REVIEW, not FAIL.",
         },
     ),
     "24-0419-application-wrong-brand": (
         {"serial": "0419", "brand": "YOUNG TOM DISTILLERY"},
-        {"pairs_with": "compliant_bourbon.png", "note": "A genuinely different brand. FAIL."},
+        {"pairs_with": "compliant_bourbon.png", "expect_overall": "FAIL", "note": "A genuinely different brand. FAIL."},
     ),
     "24-0420-application-imported": (
         {"serial": "0420", "source": "imported", "applicant": "ATLANTIC SPIRITS CO., NEWARK, NEW JERSEY 07102"},
         {
             "pairs_with": "compliant_bourbon.png",
+            "expect_overall": "FAIL",
             "note": "Declares an imported product; the label states no country of origin. VAL-13 fails "
             "on the declaration, which inference alone could never catch.",
         },
@@ -121,6 +127,7 @@ CASES = {
         {"serial": "0421", "product_type": "wine"},
         {
             "pairs_with": "compliant_bourbon.png",
+            "expect_overall": "REVIEW",
             "note": "Declares wine against a distilled spirits label. Commodity mismatch surfaced, and "
             "Part 5 rules are not applied to a product the form says is wine.",
         },
@@ -129,6 +136,7 @@ CASES = {
         {"serial": "0422", "flatten": True},
         {
             "pairs_with": "compliant_bourbon.png",
+            "expect_overall": "PASS",
             "note": "Printed and scanned: no AcroForm widgets, so the vision fallback must read it.",
         },
     ),
