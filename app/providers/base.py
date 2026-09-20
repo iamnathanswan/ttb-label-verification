@@ -7,7 +7,7 @@ constructor change and nothing else.
 
 from abc import ABC, abstractmethod
 
-from app.models import LabelFields
+from app.models import ApplicationFields, LabelFields
 
 
 class ExtractionError(Exception):
@@ -33,6 +33,14 @@ class ExtractionProvider(ABC):
             ExtractionError: the image could not be processed.
         """
 
+    async def extract_application(self, image_bytes: bytes, media_type: str) -> ApplicationFields:
+        """Read a COLA application that could not be read from its form fields.
+
+        Only reached when a form was printed and scanned, so its AcroForm widgets
+        are gone. A digitally completed form is read exactly and never arrives here.
+        """
+        raise ExtractionError("This provider cannot read scanned applications.")
+
     async def aclose(self) -> None:  # noqa: B027 — intentional no-op default
         """Release any underlying client resources.
 
@@ -49,8 +57,14 @@ class StubProvider(ExtractionProvider):
     regulatory logic is verified in isolation from model behaviour.
     """
 
-    def __init__(self, fields: LabelFields | None = None, error: ExtractionError | None = None):
+    def __init__(
+        self,
+        fields: LabelFields | None = None,
+        error: ExtractionError | None = None,
+        application: ApplicationFields | None = None,
+    ):
         self._fields = fields or LabelFields()
+        self._application = application or ApplicationFields()
         self._error = error
         self.calls = 0
 
@@ -59,3 +73,8 @@ class StubProvider(ExtractionProvider):
         if self._error:
             raise self._error
         return self._fields, {"input_tokens": 0, "output_tokens": 0}
+
+    async def extract_application(self, image_bytes: bytes, media_type: str) -> ApplicationFields:
+        if self._error:
+            raise self._error
+        return self._application

@@ -13,9 +13,8 @@ The two policies must never share a helper.
 import re
 import unicodedata
 
-from app.models import CheckResult, ExpectedValues, LabelFields, Status
+from app.models import ApplicationFields, CheckResult, LabelFields, Status
 from app.rules import constants as C
-from app.rules.units import parse_volume_ml
 
 
 def normalise(text: str) -> str:
@@ -84,112 +83,100 @@ def _text_match(
     )
 
 
-def check_alcohol_content(expected_pct: float | None, fields: LabelFields) -> CheckResult | None:
-    """MCH-03 — 27 CFR 5.65(c) allows ±0.3 percentage points.
+def check_producer(application: ApplicationFields, fields: LabelFields) -> CheckResult | None:
+    """Compare field 8 against the producer statement on the label.
 
-    A difference inside the tolerance is a match, not a discrepancy to be argued
-    about. Outside it, the shortfall is quantified rather than merely flagged.
+    Field 8 is the applicant's *name and address* as one string; the label carries
+    them as separate statements under §5.66. So the two are never character
+    identical and a plain string comparison fails every time, including on a
+    perfectly matching pair.
+
+    The form also instructs applicants to include an approved DBA or trade name
+    where it is used on the label, so the two can legitimately differ in wording.
+    Containment is therefore treated as agreement, and anything less certain goes
+    to a person rather than being called a discrepancy.
     """
-    if expected_pct is None:
+    declared = (application.applicant_name or "").strip()
+    if not declared:
         return None
 
-    observed = fields.alcohol_content_pct
-    if observed is None:
+    on_label = " ".join(
+        part for part in ((fields.producer_name or ""), (fields.producer_address or "")) if part.strip()
+    ).strip()
+
+    if not on_label:
         return CheckResult(
-            id="MCH-03",
-            name="Alcohol content matches application",
-            status=Status.FAIL,
-            citation=C.CITE_ALCOHOL_TOLERANCE,
-            expected=f"{expected_pct:g}%",
-            detail=f"The application states {expected_pct:g}% but no alcohol content was found on the label.",
+            id="MCH-01", name="Producer matches application", status=Status.FAIL,
+            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=None,
+            detail=f"The application names “{declared}” but no producer was found on the label.",
         )
 
-    difference = abs(observed - expected_pct)
-    within = difference <= C.ABV_TOLERANCE_POINTS
+    declared_norm, label_norm = normalise(declared), normalise(on_label)
+
+    if declared_norm == label_norm:
+        return CheckResult(
+            id="MCH-01", name="Producer matches application", status=Status.PASS,
+            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            detail="The producer on the label matches the applicant on the application.",
+        )
+
+    if label_norm in declared_norm or declared_norm in label_norm:
+        return CheckResult(
+            id="MCH-01", name="Producer matches application", status=Status.PASS,
+            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            detail=(
+                "The producer on the label corresponds to the applicant on the application; "
+                "the application states the fuller name and address."
+            ),
+        )
+
+    # Share the leading words? Likely the same entity written two ways.
+    declared_words, label_words = declared_norm.split(), label_norm.split()
+    if declared_words[:2] and declared_words[:2] == label_words[:2]:
+        return CheckResult(
+            id="MCH-01", name="Producer matches application", status=Status.REVIEW,
+            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            detail=(
+                "The producer and the applicant begin with the same name but differ afterwards. "
+                "Confirm they are the same entity — a trade name may be in use on the label."
+            ),
+        )
+
     return CheckResult(
-        id="MCH-03",
-        name="Alcohol content matches application",
-        status=Status.PASS if within else Status.FAIL,
-        citation=C.CITE_ALCOHOL_TOLERANCE,
-        expected=f"{expected_pct:g}%",
-        observed=f"{observed:g}%",
-        detail=(
-            f"Label {observed:g}% against application {expected_pct:g}% — a difference of "
-            f"{difference:.2g} points, within the permitted ±{C.ABV_TOLERANCE_POINTS} points."
-            if within
-            else f"Label {observed:g}% against application {expected_pct:g}% — a difference of "
-            f"{difference:.2g} points, outside the permitted ±{C.ABV_TOLERANCE_POINTS} points."
-        ),
+        id="MCH-01", name="Producer matches application", status=Status.FAIL,
+        citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+        detail=f"The application names “{declared}” but the label states “{on_label}”.",
     )
 
 
-def check_net_contents(expected: str | None, fields: LabelFields) -> CheckResult | None:
-    """Compare declared volume by value, so "750 mL" and "750ML" agree."""
-    if not expected or not expected.strip():
-        return None
+def check_all(
+    fields: LabelFields, application: ApplicationFields | None
+) -> list[CheckResult]:
+    """Compare the label against the application. Empty when none was paired.
 
-    observed_raw = (fields.net_contents_raw or "").strip()
-    expected_ml, observed_ml = parse_volume_ml(expected), parse_volume_ml(observed_raw)
+    Both sides are extracted, so this compares what was read from the label to
+    what was read from the form — no one retypes anything, which is the point.
 
-    if expected_ml is not None and observed_ml is not None:
-        # Relative, not absolute: 750 mL and 25.4 fl oz are the same container
-        # declared two lawful ways, and differ by 1.17 mL after conversion. An
-        # absolute half-millilitre tolerance called that a discrepancy.
-        tolerance = max(0.5, 0.01 * max(expected_ml, observed_ml))
-        if abs(expected_ml - observed_ml) <= tolerance:
-            return CheckResult(
-                id="MCH-01",
-                name="Net contents matches application",
-                status=Status.PASS,
-                expected=expected,
-                observed=observed_raw,
-                detail=f"Both state {observed_ml:g} mL.",
-            )
-        return CheckResult(
-            id="MCH-01",
-            name="Net contents matches application",
-            status=Status.FAIL,
-            expected=expected,
-            observed=observed_raw,
-            detail=f"The application states {expected_ml:g} mL but the label states {observed_ml:g} mL.",
-        )
-
-    return _text_match(id_="MCH-01", name="Net contents matches application", expected=expected, observed=observed_raw)
-
-
-def check_all(fields: LabelFields, expected: ExpectedValues | None) -> list[CheckResult]:
-    """Every applicable comparison. Empty when no application values were supplied.
-
-    MCH-06 — expected values are optional. Without them the compliance checks
-    still run; only the matching layer is skipped.
-
-    Source and product type are not compared here: they are declarations that
-    decide *which rules apply*, so they are consumed by VAL-13 and by the
-    commodity gating in `engine.py` rather than matched field to field.
+    Only what the form actually declares is compared. Net contents and alcohol
+    content are not fields on TTB F 5100.31: TTB removed them, and field 15 asks
+    for container wording only where it does *not* appear on the labels. They are
+    verified against the label's own requirements instead (VAL-11, VAL-14,
+    VAL-08). Source and type are declarations that decide which rules apply, so
+    they are consumed by VAL-13 and by the commodity gating in `engine.py` rather
+    than matched field to field.
     """
-    if expected is None:
+    if application is None:
         return []
 
     candidates = [
         _text_match(
-            id_="MCH-01",
-            name="Brand name matches application",
-            expected=expected.brand_name,
-            observed=fields.brand_name,
+            id_="MCH-01", name="Brand name matches application",
+            expected=application.brand_name, observed=fields.brand_name,
         ),
         _text_match(
-            id_="MCH-01",
-            name="Fanciful name matches application",
-            expected=expected.fanciful_name,
-            observed=fields.brand_name,
+            id_="MCH-01", name="Fanciful name matches application",
+            expected=application.fanciful_name, observed=fields.brand_name,
         ),
-        check_alcohol_content(expected.alcohol_content_pct, fields),
-        check_net_contents(expected.net_contents, fields),
-        _text_match(
-            id_="MCH-01",
-            name="Producer matches application",
-            expected=expected.producer_name,
-            observed=fields.producer_name,
-        ),
+        check_producer(application, fields),
     ]
     return [c for c in candidates if c is not None]

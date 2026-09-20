@@ -80,21 +80,21 @@ def test_val_13_domestic_product_not_applicable():
 
 def test_val_13_declared_import_without_country_fails_even_when_label_is_silent():
     """Field 3 of the application is authoritative; the label alone would miss this."""
-    from app.models import ExpectedValues
+    from app.models import ApplicationFields
     from app.rules.fields import check_country_of_origin
 
     label = spirits(producer_function_phrase="BOTTLED BY", country_of_origin="")
-    result = check_country_of_origin(label, ExpectedValues(source_of_product="imported"))
+    result = check_country_of_origin(label, ApplicationFields(source_of_product="imported"))
     assert result.status is Status.FAIL
     assert "application declares an imported product" in result.detail
 
 
 def test_val_13_declared_domestic_with_a_country_on_the_label_is_queried():
-    from app.models import ExpectedValues
+    from app.models import ApplicationFields
     from app.rules.fields import check_country_of_origin
 
     label = spirits(country_of_origin="Scotland")
-    result = check_country_of_origin(label, ExpectedValues(source_of_product="domestic"))
+    result = check_country_of_origin(label, ApplicationFields(source_of_product="domestic"))
     assert result.status is Status.REVIEW
 
 

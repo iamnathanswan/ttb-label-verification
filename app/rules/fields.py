@@ -6,7 +6,7 @@ marked unverified rather than failed against rules that do not apply to it
 (docs/requirements.md §J-4).
 """
 
-from app.models import CheckResult, ExpectedValues, LabelFields, Status
+from app.models import ApplicationFields, CheckResult, LabelFields, Status
 from app.rules import constants as C
 from app.rules.observation import from_observation
 
@@ -137,7 +137,7 @@ def check_producer_function_phrase(fields: LabelFields) -> CheckResult:
     )
 
 
-def check_country_of_origin(fields: LabelFields, expected: ExpectedValues | None = None) -> CheckResult:
+def check_country_of_origin(fields: LabelFields, application: ApplicationFields | None = None) -> CheckResult:
     """VAL-13 — 27 CFR 5.69: required for imported products.
 
     The COLA application declares source on field 3 (Domestic or Imported). When
@@ -147,7 +147,7 @@ def check_country_of_origin(fields: LabelFields, expected: ExpectedValues | None
     function phrase — which misses an imported product whose label never says so.
     """
     country = (fields.country_of_origin or "").strip()
-    declared = expected.source_of_product if expected else None
+    declared = application.source_of_product if application else None
 
     if declared == "domestic":
         if country:
@@ -241,12 +241,12 @@ def check_field_of_vision(fields: LabelFields) -> CheckResult:
     )
 
 
-def check_all(fields: LabelFields, expected: ExpectedValues | None = None) -> list[CheckResult]:
+def check_all(fields: LabelFields, application: ApplicationFields | None = None) -> list[CheckResult]:
     """Every mandatory-field check, VAL-10 through VAL-14."""
     return [
         check_field_of_vision(fields),
         check_alcohol_content(fields),
         check_producer_function_phrase(fields),
-        check_country_of_origin(fields, expected),
+        check_country_of_origin(fields, application),
         *check_mandatory_present(fields),
     ]

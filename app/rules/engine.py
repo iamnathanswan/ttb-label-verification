@@ -5,7 +5,14 @@ call: given the same extraction, the verdict is always the same, and every findi
 can be traced to the regulation it came from (D2).
 """
 
-from app.models import CheckResult, ExpectedValues, LabelFields, Status, VerificationResult
+from app.models import (
+    ApplicationFields,
+    CheckResult,
+    LabelFields,
+    PairingInfo,
+    Status,
+    VerificationResult,
+)
 from app.rules import fields as field_rules
 from app.rules import match as match_rules
 from app.rules import warning as warning_rules
@@ -78,7 +85,7 @@ def _commodity_mismatch(fields: LabelFields, declared: str) -> CheckResult | Non
     )
 
 
-def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> list[CheckResult]:
+def evaluate(fields: LabelFields, application: ApplicationFields | None = None) -> list[CheckResult]:
     """Run every applicable rule and return the findings."""
     if not fields.image_legible:
         return [_illegible(fields)]
@@ -88,10 +95,10 @@ def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> lis
 
     # The application's declared type is authoritative where it is supplied;
     # otherwise the commodity can only be inferred from the label.
-    declared_type = expected.type_of_product if expected else None
+    declared_type = application.type_of_product if application else None
     effective_type = declared_type or fields.beverage_type
 
-    type_checks = field_rules.check_all(fields, expected)
+    type_checks = field_rules.check_all(fields, application)
     if declared_type:
         mismatch = _commodity_mismatch(fields, declared_type)
         if mismatch:
@@ -106,7 +113,7 @@ def evaluate(fields: LabelFields, expected: ExpectedValues | None = None) -> lis
         ]
     checks.extend(type_checks)
 
-    checks.extend(match_rules.check_all(fields, expected))  # empty without expected values
+    checks.extend(match_rules.check_all(fields, application))  # empty without expected values
     return checks
 
 
@@ -129,18 +136,21 @@ def overall_status(checks: list[CheckResult]) -> Status:
 
 def verify(
     fields: LabelFields,
-    expected: ExpectedValues | None = None,
+    application: ApplicationFields | None = None,
     *,
     elapsed_ms: int = 0,
     filename: str | None = None,
+    pairing: PairingInfo | None = None,
     usage: dict[str, int] | None = None,
 ) -> VerificationResult:
     """Full verification for one label."""
-    checks = evaluate(fields, expected)
+    checks = evaluate(fields, application)
     return VerificationResult(
         overall=overall_status(checks),
         checks=checks,
         fields=fields,
+        application=application,
+        pairing=pairing,
         elapsed_ms=elapsed_ms,
         filename=filename,
         usage=usage or {},

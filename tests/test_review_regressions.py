@@ -10,12 +10,11 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.limits import SlidingWindowLimiter
 from app.main import app
-from app.models import ExpectedValues, LabelFields
+from app.models import ApplicationFields, LabelFields
 from app.providers.anthropic_provider import SYSTEM_PROMPT
 from app.providers.base import StubProvider
 from app.rules import constants as C
 from app.rules.engine import evaluate
-from app.rules.match import check_net_contents
 from app.rules.units import minimum_type_size_mm, parse_volume_ml
 
 # --- units ---------------------------------------------------------------------
@@ -136,15 +135,21 @@ def test_aggregate_batch_size_is_capped():
 # --- rules ------------------------------------------------------------------------
 
 
-def test_lawful_unit_conversion_is_not_reported_as_a_discrepancy():
-    """750 mL and 25.4 fl oz are one container declared two ways (1.17 mL apart)."""
-    result = check_net_contents("750 mL", LabelFields(net_contents_raw="25.4 FL. OZ."))
-    assert result.status.value == "PASS"
+def test_lawful_unit_conversions_resolve_to_the_same_volume():
+    """750 mL and 25.4 fl oz are one container declared two lawful ways.
+
+    The comparison this once guarded has been retired — net contents is not a
+    field on TTB F 5100.31 — but the parsing still selects the §16.22(b) type-size
+    bracket for VAL-08, so getting it wrong still misstates a regulatory threshold.
+    """
+    assert parse_volume_ml("25.4 FL. OZ.") == pytest.approx(751.17, abs=0.01)
+    assert parse_volume_ml("750 mL") == 750.0
+    assert minimum_type_size_mm(parse_volume_ml("25.4 FL. OZ.")) == minimum_type_size_mm(750.0)
 
 
-def test_genuine_volume_mismatch_still_fails():
-    result = check_net_contents("750 mL", LabelFields(net_contents_raw="375 mL"))
-    assert result.status.value == "FAIL"
+def test_genuinely_different_volumes_select_different_thresholds():
+    assert minimum_type_size_mm(parse_volume_ml("50 mL")) == 1.0
+    assert minimum_type_size_mm(parse_volume_ml("750 mL")) == 2.0
 
 
 def test_wine_label_is_not_failed_against_a_part_5_citation():
@@ -166,5 +171,5 @@ def test_wine_label_is_not_failed_against_a_part_5_citation():
     assert all(c.status.value != "FAIL" for c in part_5_rows)
 
 
-def test_expected_values_still_optional_after_all_this():
-    assert ExpectedValues().model_dump(exclude_none=True) == {}
+def test_application_is_still_optional_after_all_this():
+    assert ApplicationFields().is_empty

@@ -2,34 +2,29 @@
 
 Nothing here touches disk or a database: uploads live in memory for the duration
 of the request and are discarded when it ends (OPS-01).
+
+Both documents are uploaded and both are extracted. An agent supplies a label and
+the COLA application it belongs to; nothing is retyped, which is the point of the
+feature — the interviews describe agents drowning in data entry verification, and
+a tool that asks them to type the application values would be adding to that.
 """
 
-import csv
-import io
+import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from app.batch import LabelUpload, stream_batch, verify_one
 from app.config import settings
-from app.ingest import UnsupportedUpload
+from app.extract_application import NotAnApplication, read_form_fields
+from app.ingest import UnsupportedUpload, prepare
 from app.limits import enforce
-from app.models import ExpectedValues, VerificationResult
-from app.providers.base import ExtractionError
+from app.models import ApplicationFields, VerificationResult
+from app.pairing import Candidate, pair
+from app.providers.base import ExtractionError, ExtractionProvider
 
 router = APIRouter(prefix="/api")
-
-
-def _expected(**raw: object) -> ExpectedValues | None:
-    """Build application values, or None when the agent supplied none (MCH-06).
-
-    Field names follow TTB F 5100.31; see `ExpectedValues` for why class/type and
-    country of origin are not among them.
-    """
-    cleaned = {k: (v or None) for k, v in raw.items()}
-    values = ExpectedValues(**cleaned)
-    return values if values.model_dump(exclude_none=True) else None
 
 
 class UploadTooLarge(Exception):
@@ -40,41 +35,77 @@ async def _read(upload: UploadFile) -> bytes:
     content = await upload.read()
     if len(content) > settings.max_upload_bytes:
         mb = settings.max_upload_bytes // (1024 * 1024)
-        raise UploadTooLarge(f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller image.")
+        raise UploadTooLarge(
+            f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller file."
+        )
     return content
+
+
+async def _extract_application(
+    content: bytes, filename: str, provider: ExtractionProvider
+) -> ApplicationFields:
+    """Read an application, exactly where possible and by sight where not.
+
+    A form completed digitally carries its values in AcroForm widgets and is read
+    without a model. One that was printed and scanned has to be looked at, and the
+    result says which happened so an agent can weigh it.
+    """
+    fields = await asyncio.to_thread(read_form_fields, content)
+    if fields is not None:
+        fields.filename = filename
+        return fields
+
+    image, media_type = await asyncio.to_thread(prepare, content)
+    fields = await provider.extract_application(image, media_type)
+    fields.extraction_source = "vision"
+    fields.filename = filename
+    return fields
 
 
 @router.post("/verify", response_model=VerificationResult)
 async def verify_label(
     request: Request,
     file: Annotated[UploadFile, File(description="Label image or PDF")],
-    brand_name: Annotated[str | None, Form()] = None,
-    fanciful_name: Annotated[str | None, Form()] = None,
-    source_of_product: Annotated[str | None, Form()] = None,
-    type_of_product: Annotated[str | None, Form()] = None,
-    net_contents: Annotated[str | None, Form()] = None,
-    alcohol_content_pct: Annotated[float | None, Form()] = None,
-    producer_name: Annotated[str | None, Form()] = None,
+    application: Annotated[
+        UploadFile | None, File(description="COLA application, TTB F 5100.31 (PDF)")
+    ] = None,
 ) -> VerificationResult:
-    """Verify one label. Application values are optional (MCH-06)."""
+    """Verify one label, optionally against its application."""
     enforce(request, cost=1)
+
     try:
         content = await _read(file)
     except UploadTooLarge as exc:
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
 
+    fields = None
+    pairing_info = None
+    if application is not None:
+        try:
+            application_bytes = await _read(application)
+        except UploadTooLarge as exc:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)
+            ) from exc
+        try:
+            fields = await _extract_application(
+                application_bytes, application.filename or "application.pdf",
+                request.app.state.provider,
+            )
+        except (NotAnApplication, UnsupportedUpload) as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+        outcome = pair(
+            [file.filename or "label"],
+            [Candidate(application.filename or "application.pdf", fields)],
+        )
+        pairing_info = outcome.pairs[0].info
+
     upload = LabelUpload(
         filename=file.filename or "label",
         content=content,
-        expected=_expected(
-            brand_name=brand_name,
-            fanciful_name=fanciful_name,
-            source_of_product=source_of_product,
-            type_of_product=type_of_product,
-            net_contents=net_contents,
-            alcohol_content_pct=alcohol_content_pct,
-            producer_name=producer_name,
-        ),
+        application=fields,
+        pairing=pairing_info,
     )
 
     try:
@@ -82,66 +113,21 @@ async def verify_label(
     except UnsupportedUpload as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ExtractionError as exc:
-        code = status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_422_UNPROCESSABLE_ENTITY
-        raise HTTPException(status_code=code, detail=exc.message) from exc
-
-
-def _expected_from_csv(raw: bytes) -> dict[str, ExpectedValues]:
-    """Map filename -> application values (BAT-05, MCH-01).
-
-    Column names are matched case- and separator-insensitively so a spreadsheet
-    exported as "Brand Name" or "brand_name" both work.
-    """
-    text = raw.decode("utf-8-sig", errors="replace")
-    rows = list(csv.DictReader(io.StringIO(text)))
-    mapping: dict[str, ExpectedValues] = {}
-
-    def pick(row: dict, *names: str) -> str | None:
-        for key, value in row.items():
-            if key and key.strip().lower().replace(" ", "_") in names:
-                return (value or "").strip() or None
-        return None
-
-    for row in rows:
-        filename = pick(row, "filename", "file", "label", "image")
-        if not filename:
-            continue
-        abv = pick(row, "alcohol_content_pct", "abv", "alcohol_content")
-        try:
-            abv_value = float(abv) if abv else None
-        except ValueError:
-            abv_value = None
-        source = (pick(row, "source_of_product", "source") or "").lower() or None
-        product_type = (pick(row, "type_of_product", "product_type") or "").lower() or None
-        if product_type:
-            product_type = {
-                "wine": "wine",
-                "distilled spirits": "distilled_spirits",
-                "distilled_spirits": "distilled_spirits",
-                "spirits": "distilled_spirits",
-                "malt beverages": "malt_beverage",
-                "malt beverage": "malt_beverage",
-                "malt_beverage": "malt_beverage",
-                "beer": "malt_beverage",
-            }.get(product_type)
-
-        mapping[filename] = ExpectedValues(
-            brand_name=pick(row, "brand_name", "brand"),
-            fanciful_name=pick(row, "fanciful_name", "fanciful"),
-            source_of_product=source if source in {"domestic", "imported"} else None,
-            type_of_product=product_type,
-            net_contents=pick(row, "net_contents", "net_content", "volume"),
-            alcohol_content_pct=abv_value,
-            producer_name=pick(row, "producer_name", "producer", "bottler"),
+        code = (
+            status.HTTP_503_SERVICE_UNAVAILABLE
+            if exc.retryable
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
         )
-    return mapping
+        raise HTTPException(status_code=code, detail=exc.message) from exc
 
 
 @router.post("/verify/batch")
 async def verify_batch(
     request: Request,
     files: Annotated[list[UploadFile], File(description="Label images or PDFs")],
-    expected_csv: Annotated[UploadFile | None, File(description="Optional application values")] = None,
+    applications: Annotated[
+        list[UploadFile] | None, File(description="COLA applications (PDF)")
+    ] = None,
 ) -> StreamingResponse:
     """Verify many labels, streaming each result as it completes (BAT-01, PRF-02)."""
     if len(files) > settings.max_batch_files:
@@ -154,26 +140,27 @@ async def verify_batch(
         )
     enforce(request, cost=len(files))
 
-    expected_map: dict[str, ExpectedValues] = {}
-    if expected_csv:
+    rejected: list[dict[str, str]] = []
+
+    candidates: list[Candidate] = []
+    for upload in applications or []:
+        name = upload.filename or "application.pdf"
         try:
-            expected_map = _expected_from_csv(await _read(expected_csv))
-        except UploadTooLarge as exc:
-            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
+            content = await _read(upload)
+            fields = await _extract_application(content, name, request.app.state.provider)
+            candidates.append(Candidate(name, fields))
+        except (UploadTooLarge, NotAnApplication, UnsupportedUpload, ExtractionError) as exc:
+            rejected.append({"filename": name, "message": f"Application could not be read: {exc}"})
 
     # A file too large for the per-file ceiling becomes one rejected label, not a
-    # rejected submission: an agent who uploaded 300 labels and included one
-    # 11 MB scan should get 299 results and one clear error (BAT-04). Their rate
-    # limit was already charged for the whole batch, so aborting would spend the
-    # budget and return nothing.
-    uploads: list[LabelUpload] = []
-    rejected: list[dict[str, str]] = []
+    # rejected submission (BAT-04). The rate limit was already charged for the
+    # whole batch, so aborting would spend the budget and return nothing.
+    label_bytes: dict[str, bytes] = {}
     total_bytes = 0
-
-    for index, upload_file in enumerate(files):
-        name = upload_file.filename or f"label-{index + 1}"
+    for index, upload in enumerate(files):
+        name = upload.filename or f"label-{index + 1}"
         try:
-            content = await _read(upload_file)
+            content = await _read(upload)
         except UploadTooLarge as exc:
             rejected.append({"filename": name, "message": str(exc)})
             continue
@@ -181,18 +168,32 @@ async def verify_batch(
         total_bytes += len(content)
         if total_bytes > settings.max_batch_bytes:
             mb = settings.max_batch_bytes // (1024 * 1024)
-            rejected.append(
-                {
-                    "filename": name,
-                    "message": (
-                        f"The submission exceeds {mb} MB in total, so this label and any after it "
-                        "were not processed. Split the batch."
-                    ),
-                }
-            )
+            rejected.append({
+                "filename": name,
+                "message": (
+                    f"The submission exceeds {mb} MB in total, so this label and any after it "
+                    "were not processed. Split the batch."
+                ),
+            })
             break
+        label_bytes[name] = content
 
-        uploads.append(LabelUpload(filename=name, content=content, expected=expected_map.get(name)))
+    outcome = pair(list(label_bytes), candidates)
+    uploads = [
+        LabelUpload(
+            filename=item.label_filename,
+            content=label_bytes[item.label_filename],
+            application=item.application.fields if item.application else None,
+            pairing=item.info,
+        )
+        for item in outcome.pairs
+    ]
+
+    for unused in outcome.unused_applications:
+        rejected.append({
+            "filename": unused.filename,
+            "message": "No label matched this application, so it was not compared.",
+        })
 
     return StreamingResponse(
         stream_batch(request.app.state.provider, uploads, rejected=rejected),

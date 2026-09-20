@@ -15,6 +15,7 @@ from app.providers.base import ExtractionError, StubProvider
 from app.rules import constants as C
 
 LABELS = Path(__file__).parent / "fixtures" / "labels"
+APPLICATIONS = Path(__file__).parent / "fixtures" / "applications"
 
 
 def compliant_fields(**overrides) -> LabelFields:
@@ -50,6 +51,11 @@ def label_bytes() -> bytes:
     return (LABELS / "compliant_bourbon.png").read_bytes()
 
 
+@pytest.fixture
+def application_bytes() -> bytes:
+    return (APPLICATIONS / "24-0417-application.pdf").read_bytes()
+
+
 def test_health_reports_extraction_configuration(client):
     body = client.get("/api/health").json()
     assert body["status"] == "ok"
@@ -78,26 +84,61 @@ def test_verify_without_application_values_skips_matching(client, label_bytes):
     assert not [c for c in body["checks"] if c["id"].startswith("MCH")]
 
 
-def test_verify_with_application_values_adds_matching(client, label_bytes):
+def test_verify_with_an_application_adds_matching(client, label_bytes, application_bytes):
+    """Both documents are uploaded; neither side is typed."""
     r = client.post(
         "/api/verify",
-        files={"file": ("l.png", label_bytes, "image/png")},
-        data={"brand_name": "OLD TOM DISTILLERY", "alcohol_content_pct": "45.0", "source_of_product": "domestic"},
+        files={
+            "file": ("compliant_bourbon.png", label_bytes, "image/png"),
+            "application": ("24-0417-application.pdf", application_bytes, "application/pdf"),
+        },
     )
-    assert [c for c in r.json()["checks"] if c["id"].startswith("MCH")]
+    assert r.status_code == 200
+    body = r.json()
+    assert [c for c in body["checks"] if c["id"].startswith("MCH")]
+    assert body["application"]["brand_name"] == "OLD TOM DISTILLERY"
+    assert body["application"]["extraction_source"] == "form_fields"
+    assert body["pairing"]["rule"] == "sole_pair"
 
 
 def test_case_difference_surfaces_as_review_not_failure(client, label_bytes):
-    """Dave's case, end to end through the API."""
+    """Dave's case, end to end, with the brand read off a real application."""
+    application = (APPLICATIONS / "24-0418-application-case-differs.pdf").read_bytes()
     r = client.post(
         "/api/verify",
-        files={"file": ("l.png", label_bytes, "image/png")},
-        data={"brand_name": "Old Tom Distillery"},
+        files={
+            "file": ("compliant_bourbon.png", label_bytes, "image/png"),
+            "application": ("24-0418-application-case-differs.pdf", application, "application/pdf"),
+        },
     )
-    # "Brand name present" (VAL-14) also matches on name; select the comparison.
-    brand = next(c for c in r.json()["checks"] if c["id"].startswith("MCH") and "brand" in c["name"].lower())
+    brand = next(
+        c for c in r.json()["checks"]
+        if c["id"].startswith("MCH") and "brand" in c["name"].lower()
+    )
     assert brand["status"] == Status.REVIEW
-    assert brand["expected"] and brand["observed"]
+    assert brand["expected"] == "Old Tom Distillery"
+    assert brand["observed"] == "OLD TOM DISTILLERY"
+
+
+def test_serial_number_is_reported_so_pairing_can_be_audited(client, label_bytes, application_bytes):
+    r = client.post(
+        "/api/verify",
+        files={
+            "file": ("compliant_bourbon.png", label_bytes, "image/png"),
+            "application": ("24-0417-application.pdf", application_bytes, "application/pdf"),
+        },
+    )
+    assert r.json()["pairing"]["serial_number"] == "24-0417"
+
+
+def test_a_label_alone_still_runs_compliance(client, label_bytes):
+    """The single-document path must not regress now that two are accepted."""
+    body = client.post(
+        "/api/verify", files={"file": ("l.png", label_bytes, "image/png")}
+    ).json()
+    assert body["application"] is None
+    assert [c for c in body["checks"] if c["id"].startswith("VAL")]
+    assert not [c for c in body["checks"] if c["id"].startswith("MCH")]
 
 
 def test_unreadable_upload_is_rejected_with_a_usable_message(client):
@@ -155,15 +196,30 @@ def test_one_bad_label_does_not_abort_the_batch(client, label_bytes):
     assert len(errors) == 1 and errors[0][1]["filename"] == "bad.png"
 
 
-def test_batch_applies_expected_values_from_csv(client, label_bytes):
-    csv_bytes = b"filename,brand_name\nl0.png,Old Tom Distillery\n"
+def test_batch_pairs_applications_to_labels(client, label_bytes):
+    """A batch takes both sets of documents and reports how each was paired."""
+    application = (APPLICATIONS / "24-0417-application.pdf").read_bytes()
     files = [
-        ("files", ("l0.png", label_bytes, "image/png")),
-        ("expected_csv", ("expected.csv", csv_bytes, "text/csv")),
+        ("files", ("24-0417-label.png", label_bytes, "image/png")),
+        ("applications", ("24-0417-application.pdf", application, "application/pdf")),
     ]
     events = _events(client.post("/api/verify/batch", files=files).text)
     result = next(p for n, p in events if n == "result")
-    assert [c for c in result["checks"] if c["id"].startswith("MCH")]
+    assert result["pairing"]["rule"] in {"sole_pair", "serial_in_filename"}
+    assert result["application"]["serial_number"] == "24-0417"
+
+
+def test_an_application_with_no_label_is_reported(client, label_bytes):
+    """An orphan must be surfaced, never silently discarded."""
+    orphan = (APPLICATIONS / "24-0423-application-orphan.pdf").read_bytes()
+    files = [
+        ("files", ("bourbon.png", label_bytes, "image/png")),
+        ("applications", ("bourbon.pdf", (APPLICATIONS / "24-0417-application.pdf").read_bytes(), "application/pdf")),
+        ("applications", ("24-0423-application-orphan.pdf", orphan, "application/pdf")),
+    ]
+    text = client.post("/api/verify/batch", files=files).text
+    assert "24-0423-application-orphan.pdf" in text
+    assert "No label matched this application" in text
 
 
 def test_batch_over_the_file_ceiling_is_refused(client, label_bytes, monkeypatch):

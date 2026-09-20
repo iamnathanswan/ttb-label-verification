@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from app.config import settings
 from app.ingest import UnsupportedUpload, prepare
-from app.models import ExpectedValues, VerificationResult
+from app.models import ApplicationFields, PairingInfo, VerificationResult
 from app.providers.base import ExtractionError, ExtractionProvider
 from app.rules.engine import verify
 
@@ -27,7 +27,8 @@ from app.rules.engine import verify
 class LabelUpload:
     filename: str
     content: bytes
-    expected: ExpectedValues | None = None
+    application: ApplicationFields | None = None
+    pairing: PairingInfo | None = None
 
 
 async def verify_one(provider: ExtractionProvider, upload: LabelUpload) -> VerificationResult:
@@ -41,7 +42,8 @@ async def verify_one(provider: ExtractionProvider, upload: LabelUpload) -> Verif
     fields, usage = await provider.extract(image, media_type)
     return verify(
         fields,
-        upload.expected,
+        upload.application,
+        pairing=upload.pairing,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
         filename=upload.filename,
         usage=usage,

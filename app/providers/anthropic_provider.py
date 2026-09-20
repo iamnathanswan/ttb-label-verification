@@ -17,7 +17,7 @@ import anthropic
 from pydantic import ValidationError
 
 from app.config import settings
-from app.models import LabelFields
+from app.models import ApplicationFields, LabelFields
 from app.providers.base import ExtractionError, ExtractionProvider
 
 MODEL = "claude-sonnet-5"  # see docs/perf.md; override with ANTHROPIC_MODEL
@@ -70,6 +70,29 @@ the object — no prose, no markdown fences, no commentary.
 """
 
 USER_PROMPT = "Transcribe this alcohol beverage label. Respond with only the JSON object."
+
+APPLICATION_SYSTEM = """\
+You transcribe a completed US Treasury (TTB) form 5100.31, the application for \
+label approval, for a compliance workflow. You are a careful reader, not a reviewer.
+
+Report only what is written on the form. Never infer, correct or complete a value. \
+If a field is blank, return an empty string.
+
+The fields you need:
+- serial_number: field 4, the year boxes followed by the serial boxes, e.g. "24-0417"
+- permit_number: field 2, the plant registry, basic permit or brewer's number
+- source_of_product: field 3, exactly "domestic" or "imported" according to which \
+box is marked; empty if neither is
+- type_of_product: field 5, exactly "wine", "distilled_spirits" or "malt_beverage" \
+according to which box is marked; empty if none is
+- brand_name: field 6
+- fanciful_name: field 7
+- applicant_name: field 8, the name and address of the applicant, as one line
+- ttb_id: the TTB ID if the form carries one
+
+Return a single JSON object with those keys and nothing else."""
+
+APPLICATION_USER = "Transcribe this COLA application. Respond with only the JSON object."
 
 
 def _system_prompt() -> str:
@@ -180,6 +203,47 @@ class AnthropicProvider(ExtractionProvider):
             "extract_ms": int((time.perf_counter() - started) * 1000),
         }
         return fields, usage
+
+    async def extract_application(self, image_bytes: bytes, media_type: str) -> ApplicationFields:
+        """Read a scanned application by sight (see `ExtractionProvider`)."""
+        schema = json.dumps(ApplicationFields.model_json_schema(), separators=(",", ":"))
+        try:
+            response = await self._client.messages.create(
+                model=self._model,
+                max_tokens=MAX_TOKENS,
+                system=[{
+                    "type": "text",
+                    "text": APPLICATION_SYSTEM + SCHEMA_PREAMBLE + schema,
+                    "cache_control": {"type": "ephemeral"},
+                }],
+                output_config={"effort": "low"},
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64.standard_b64encode(image_bytes).decode(),
+                            },
+                        },
+                        {"type": "text", "text": APPLICATION_USER},
+                    ],
+                }],
+            )
+        except anthropic.APIStatusError as exc:
+            raise ExtractionError(
+                "The application could not be read.", retryable=exc.status_code >= 500
+            ) from exc
+
+        text = "".join(b.text for b in response.content if b.type == "text")
+        try:
+            return ApplicationFields.model_validate_json(_extract_json(text))
+        except (ValueError, ValidationError) as exc:
+            raise ExtractionError(
+                "The application could not be read into the expected structure.", retryable=True
+            ) from exc
 
     async def aclose(self) -> None:
         await self._client.close()

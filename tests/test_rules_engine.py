@@ -1,6 +1,6 @@
 """Engine composition tests — gating, overall status, legibility. No network."""
 
-from app.models import ExpectedValues, LabelFields, Status
+from app.models import ApplicationFields, LabelFields, Status
 from app.rules import constants as C
 from app.rules.engine import evaluate, overall_status, verify
 
@@ -104,21 +104,21 @@ def test_verification_works_without_application_values():
 
 
 def test_application_values_add_comparisons():
-    result = verify(compliant(), ExpectedValues(brand_name="OLD TOM DISTILLERY"))
+    result = verify(compliant(), ApplicationFields(brand_name="OLD TOM DISTILLERY"))
     assert [c for c in result.checks if c.id.startswith("MCH")]
 
 
 def test_declared_product_type_decides_which_rules_apply():
     """Field 5 is authoritative; the label should not have to be guessed from."""
     label = compliant(beverage_type="unknown", alcohol_content_pct=None)
-    result = verify(label, ExpectedValues(type_of_product="wine"))
+    result = verify(label, ApplicationFields(type_of_product="wine"))
     val_11 = next(c for c in result.checks if c.id == "VAL-11")
     assert val_11.status is Status.REVIEW
     assert "Part 5" in val_11.detail
 
 
 def test_label_disagreeing_with_the_declared_type_is_surfaced():
-    result = verify(compliant(), ExpectedValues(type_of_product="wine"))
+    result = verify(compliant(), ApplicationFields(type_of_product="wine"))
     mismatch = [c for c in result.checks if c.name == "Product type matches application"]
     assert mismatch and mismatch[0].status is Status.REVIEW
 

@@ -11,7 +11,7 @@ End-to-end extraction of these fields from real images is verified separately by
 
 import pytest
 
-from app.models import CheckResult, ExpectedValues, LabelFields, Status, VerificationResult
+from app.models import ApplicationFields, CheckResult, LabelFields, Status, VerificationResult
 
 # Requirement -> the field that satisfies it.
 MANDATORY_FIELDS = {
@@ -71,6 +71,6 @@ def test_result_separates_failures_reviews_and_advisories():
     assert [c.id for c in result.advisories] == ["VAL-08"]
 
 
-def test_expected_values_are_all_optional():
-    """MCH-06 — the tool must work with no application values at all."""
-    assert ExpectedValues().model_dump(exclude_none=True) == {}
+def test_application_fields_are_all_optional():
+    """MCH-06 — the tool must work with no application at all."""
+    assert ApplicationFields().is_empty

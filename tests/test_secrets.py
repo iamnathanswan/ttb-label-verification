@@ -40,9 +40,11 @@ def test_ops_04_env_file_is_not_tracked():
 
 def test_ops_04_no_key_in_git_history():
     """A key removed in a later commit is still a leaked key."""
+    # Binary blobs are in history now that the fixtures include PDFs, so decode
+    # leniently rather than letting one non-UTF-8 byte abort the scan.
     history = subprocess.run(
-        ["git", "log", "-p", "--all"], cwd=ROOT, capture_output=True, text=True, check=False
-    ).stdout
+        ["git", "log", "-p", "--all"], cwd=ROOT, capture_output=True, check=False
+    ).stdout.decode("utf-8", errors="replace")
     assert not KEY_PATTERN.search(history)
 
 
