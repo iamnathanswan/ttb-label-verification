@@ -58,9 +58,7 @@ def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
 
     if not applications:
         for label in labels:
-            outcome.pairs.append(
-                _unpaired(label, "No application was supplied, so only the regulations were checked.")
-            )
+            outcome.pairs.append(_unpaired(label, "No application was supplied, so only the regulations were checked."))
         return outcome
 
     remaining = list(applications)
@@ -71,7 +69,8 @@ def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
         application = remaining[0]
         outcome.pairs.append(
             Pairing(
-                labels[0], application,
+                labels[0],
+                application,
                 PairingInfo(
                     rule=PairingRule.SOLE_PAIR,
                     application_filename=application.filename,
@@ -108,17 +107,15 @@ def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
         if match is None:
             label_stem = normalise(_stem(label))
             brand_matches = [
-                candidate for candidate in remaining
+                candidate
+                for candidate in remaining
                 if candidate.fields
                 and candidate.fields.brand_name
                 and normalise(candidate.fields.brand_name) in label_stem
             ]
             if len(brand_matches) == 1:
                 match, rule = brand_matches[0], PairingRule.BRAND_NAME
-                detail = (
-                    f"The brand “{match.fields.brand_name}” on the application appears in the "
-                    "label's filename."
-                )
+                detail = f"The brand “{match.fields.brand_name}” on the application appears in the label's filename."
             elif len(brand_matches) > 1:
                 outcome.pairs.append(
                     _unpaired(
@@ -142,7 +139,8 @@ def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
         remaining.remove(match)
         outcome.pairs.append(
             Pairing(
-                label, match,
+                label,
+                match,
                 PairingInfo(
                     rule=rule,
                     application_filename=match.filename,

@@ -86,6 +86,7 @@ def test_normalise_does_not_fold_different_words():
 
 # --- retired comparisons ------------------------------------------------------
 
+
 def test_alcohol_and_net_contents_are_not_compared_to_the_application():
     """Neither is a field on TTB F 5100.31, so there is nothing to compare against.
 
@@ -112,6 +113,7 @@ def test_every_non_passing_result_shows_expected_and_observed():
 
 
 # --- producer: field 8 is name AND address ------------------------------------
+
 
 def test_producer_matches_when_the_application_carries_the_address():
     """Field 8 combines name and address; the label separates them.

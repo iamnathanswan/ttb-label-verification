@@ -14,6 +14,7 @@ def rule_for(outcome, label: str) -> PairingRule:
 
 # --- the single review --------------------------------------------------------
 
+
 def test_one_of_each_pairs_directly():
     outcome = pair(["bourbon.png"], [app("cola.pdf", serial="24-0417")])
     assert rule_for(outcome, "bourbon.png") is PairingRule.SOLE_PAIR
@@ -28,6 +29,7 @@ def test_a_label_with_no_application_is_still_checked():
 
 
 # --- batch strategies ---------------------------------------------------------
+
 
 def test_serial_in_the_label_filename_pairs():
     outcome = pair(

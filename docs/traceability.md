@@ -31,19 +31,19 @@ and the submission itself.
 | VAL-05 | Warning must be separate and apart from all other information | `app/rules/warning.py` | `generate_labels.py`<br>`test_rules_warning.py` | test |
 | VAL-06 | Warning must appear on a contrasting background and be legible… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/warning.py` | `test_rules_warning.py` | test |
 | VAL-07 | Warning must not be compressed such that it is not readily legible | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/warning.py` | `test_rules_warning.py` | test |
-| VAL-08 | Minimum type size is a function of container volume: ≤237 mL →… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/units.py`<br>`app/rules/warning.py` | `test_models.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
+| VAL-08 | Minimum type size is a function of container volume: ≤237 mL →… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/match.py`<br>`app/rules/units.py`<br>`app/rules/warning.py` | `test_models.py`<br>`test_review_regressions.py`<br>`test_rules_match.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
 | VAL-09 | Max characters per inch by type size: 1 mm → 40; 2 mm → 25; 3 m… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/warning.py` | `test_rules_warning.py` | test |
 | VAL-10 | Brand name, class/type, and alcohol content must appear within… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_rules_fields.py` | test |
-| VAL-11 | Alcohol content must be expressed as percentage by volume; proo… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
+| VAL-11 | Alcohol content must be expressed as percentage by volume; proo… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
 | VAL-12 | Producer name must be preceded by a function phrase — "bottled… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
-| VAL-13 | Country of origin required for imported products | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `generate_labels.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
-| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py` | `test_api.py`<br>`test_review_regressions.py`<br>`test_rules_fields.py` | test |
-| MCH-01 | Compare extracted label values against expected application val… | `app/api.py`<br>`app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
+| VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py`<br>`web/src/components/Comparison.jsx` | `generate_applications.py`<br>`generate_labels.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
+| VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `test_review_regressions.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
+| MCH-01 | Compare extracted label values against expected application val… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce… | — | `test_rules_match.py` | test |
-| MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py`<br>`app/rules/match.py` | `test_rules_match.py` | test |
+| MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py` | `test_rules_match.py` | test |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a… | `app/models.py` | `test_rules_match.py` | test |
 | MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a… | — | `test_rules_match.py` | test |
-| MCH-06 | Expected values are optional; with none supplied the tool still… | `app/api.py`<br>`app/models.py`<br>`app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_match.py` | test |
+| MCH-06 | Expected values are optional; with none supplied the tool still… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_match.py` | test |
 | PRF-01 | Single label returns results in ≈5 seconds | `app/config.py`<br>`app/ingest.py`<br>`app/providers/anthropic_provider.py` | `benchmark.py` | measured |
 | PRF-02 | Batch streams results as each label completes; first result vis… | `app/api.py`<br>`app/batch.py`<br>`web/src/lib/sse.js` | `test_load.py` | test |
 | PRF-03 | Measured elapsed time displayed per label | `app/models.py` | `benchmark.py` | measured |
@@ -52,7 +52,7 @@ and the submission itself.
 | BAT-02 | Target 200–300 labels per batch | `app/batch.py`<br>`app/config.py` | `test_load.py` | test |
 | BAT-03 | Per-label progress and a batch summary | `app/batch.py` | `test_api.py`<br>`test_load.py` | test |
 | BAT-04 | One failure must not abort the batch | `app/api.py`<br>`app/batch.py` | `test_api.py`<br>`test_load.py` | test |
-| BAT-05 | Export batch results to CSV | `app/api.py`<br>`app/batch.py`<br>`web/src/lib/csv.js` | `csv.test.js` | test |
+| BAT-05 | Export batch results to CSV | `app/batch.py`<br>`web/src/lib/csv.js` | `csv.test.js` | test |
 | BAT-06 | Bounded concurrency to protect latency and rate limits | `app/batch.py`<br>`app/config.py` | `test_load.py` | test |
 | OPS-01 | Stateless — no uploaded label or extracted content persisted | `app/api.py` | `test_load.py` | test |
 | OPS-02 | Model provider behind a swappable interface | `app/providers/base.py` | `test_provider_seam.py` | test |

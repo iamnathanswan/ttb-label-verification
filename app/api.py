@@ -35,15 +35,11 @@ async def _read(upload: UploadFile) -> bytes:
     content = await upload.read()
     if len(content) > settings.max_upload_bytes:
         mb = settings.max_upload_bytes // (1024 * 1024)
-        raise UploadTooLarge(
-            f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller file."
-        )
+        raise UploadTooLarge(f"{upload.filename} is larger than the {mb} MB limit. Upload a smaller file.")
     return content
 
 
-async def _extract_application(
-    content: bytes, filename: str, provider: ExtractionProvider
-) -> ApplicationFields:
+async def _extract_application(content: bytes, filename: str, provider: ExtractionProvider) -> ApplicationFields:
     """Read an application, exactly where possible and by sight where not.
 
     A form completed digitally carries its values in AcroForm widgets and is read
@@ -66,9 +62,7 @@ async def _extract_application(
 async def verify_label(
     request: Request,
     file: Annotated[UploadFile, File(description="Label image or PDF")],
-    application: Annotated[
-        UploadFile | None, File(description="COLA application, TTB F 5100.31 (PDF)")
-    ] = None,
+    application: Annotated[UploadFile | None, File(description="COLA application, TTB F 5100.31 (PDF)")] = None,
 ) -> VerificationResult:
     """Verify one label, optionally against its application."""
     enforce(request, cost=1)
@@ -84,12 +78,11 @@ async def verify_label(
         try:
             application_bytes = await _read(application)
         except UploadTooLarge as exc:
-            raise HTTPException(
-                status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
         try:
             fields = await _extract_application(
-                application_bytes, application.filename or "application.pdf",
+                application_bytes,
+                application.filename or "application.pdf",
                 request.app.state.provider,
             )
         except (NotAnApplication, UnsupportedUpload) as exc:
@@ -113,11 +106,7 @@ async def verify_label(
     except UnsupportedUpload as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ExtractionError as exc:
-        code = (
-            status.HTTP_503_SERVICE_UNAVAILABLE
-            if exc.retryable
-            else status.HTTP_422_UNPROCESSABLE_ENTITY
-        )
+        code = status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_422_UNPROCESSABLE_ENTITY
         raise HTTPException(status_code=code, detail=exc.message) from exc
 
 
@@ -125,9 +114,7 @@ async def verify_label(
 async def verify_batch(
     request: Request,
     files: Annotated[list[UploadFile], File(description="Label images or PDFs")],
-    applications: Annotated[
-        list[UploadFile] | None, File(description="COLA applications (PDF)")
-    ] = None,
+    applications: Annotated[list[UploadFile] | None, File(description="COLA applications (PDF)")] = None,
 ) -> StreamingResponse:
     """Verify many labels, streaming each result as it completes (BAT-01, PRF-02)."""
     if len(files) > settings.max_batch_files:
@@ -168,13 +155,15 @@ async def verify_batch(
         total_bytes += len(content)
         if total_bytes > settings.max_batch_bytes:
             mb = settings.max_batch_bytes // (1024 * 1024)
-            rejected.append({
-                "filename": name,
-                "message": (
-                    f"The submission exceeds {mb} MB in total, so this label and any after it "
-                    "were not processed. Split the batch."
-                ),
-            })
+            rejected.append(
+                {
+                    "filename": name,
+                    "message": (
+                        f"The submission exceeds {mb} MB in total, so this label and any after it "
+                        "were not processed. Split the batch."
+                    ),
+                }
+            )
             break
         label_bytes[name] = content
 
@@ -190,10 +179,12 @@ async def verify_batch(
     ]
 
     for unused in outcome.unused_applications:
-        rejected.append({
-            "filename": unused.filename,
-            "message": "No label matched this application, so it was not compared.",
-        })
+        rejected.append(
+            {
+                "filename": unused.filename,
+                "message": "No label matched this application, so it was not compared.",
+            }
+        )
 
     return StreamingResponse(
         stream_batch(request.app.state.provider, uploads, rejected=rejected),

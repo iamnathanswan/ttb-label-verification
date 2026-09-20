@@ -211,31 +211,33 @@ class AnthropicProvider(ExtractionProvider):
             response = await self._client.messages.create(
                 model=self._model,
                 max_tokens=MAX_TOKENS,
-                system=[{
-                    "type": "text",
-                    "text": APPLICATION_SYSTEM + SCHEMA_PREAMBLE + schema,
-                    "cache_control": {"type": "ephemeral"},
-                }],
+                system=[
+                    {
+                        "type": "text",
+                        "text": APPLICATION_SYSTEM + SCHEMA_PREAMBLE + schema,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
                 output_config={"effort": "low"},
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64.standard_b64encode(image_bytes).decode(),
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": base64.standard_b64encode(image_bytes).decode(),
+                                },
                             },
-                        },
-                        {"type": "text", "text": APPLICATION_USER},
-                    ],
-                }],
+                            {"type": "text", "text": APPLICATION_USER},
+                        ],
+                    }
+                ],
             )
         except anthropic.APIStatusError as exc:
-            raise ExtractionError(
-                "The application could not be read.", retryable=exc.status_code >= 500
-            ) from exc
+            raise ExtractionError("The application could not be read.", retryable=exc.status_code >= 500) from exc
 
         text = "".join(b.text for b in response.content if b.type == "text")
         try:

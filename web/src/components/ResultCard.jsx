@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import Comparison from './Comparison.jsx'
+import Documents from './Documents.jsx'
 
 const ICON = { PASS: '✓', REVIEW: '!', FAIL: '✕' }
 const WORD = { PASS: 'Passed', REVIEW: 'Needs review', FAIL: 'Failed' }
@@ -27,7 +29,7 @@ function Check({ check }) {
   )
 }
 
-export default function ResultCard({ result, defaultOpen }) {
+export default function ResultCard({ result, defaultOpen, labelFile, applicationFile }) {
   const [open, setOpen] = useState(Boolean(defaultOpen))
   const decidable = result.checks.filter((c) => !c.advisory)
   const advisory = result.checks.filter((c) => c.advisory)
@@ -54,12 +56,20 @@ export default function ResultCard({ result, defaultOpen }) {
             <strong>{WORD[result.overall]}</strong> — {summary}
           </span>
         </span>
-        <span className="card__meta">{result.elapsed_ms} ms</span>
+        <span className="card__meta">
+          {result.application?.serial_number && (
+            <span className="card__serial">{result.application.serial_number}</span>
+          )}
+          {result.elapsed_ms} ms
+        </span>
         <span className="card__chevron" aria-hidden="true">{open ? '▴' : '▾'}</span>
       </button>
 
       {open && (
         <div className="card__detail">
+          <Comparison result={result} />
+
+          <h4>Against the regulations</h4>
           <ul className="checks">
             {decidable.map((c, i) => <Check key={`${c.id}-${i}`} check={c} />)}
           </ul>
@@ -75,6 +85,8 @@ export default function ResultCard({ result, defaultOpen }) {
               </ul>
             </>
           )}
+
+          <Documents labelFile={labelFile} applicationFile={applicationFile} />
         </div>
       )}
     </article>

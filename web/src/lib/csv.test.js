@@ -24,7 +24,25 @@ const result = ({ fields: fieldOverrides, ...overrides } = {}) => ({
 })
 
 const rows = (csv) => csv.split('\n')
-const cells = (line) => line.match(/("([^"]|"")*"|[^,]*)/g).filter((_, i) => i % 2 === 0)
+
+/** Split a CSV line on commas that are not inside quotes. */
+const cells = (line) => {
+  const out = []
+  let field = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') { field += '"'; i++ } else { quoted = !quoted }
+    } else if (ch === ',' && !quoted) {
+      out.push(field); field = ''
+    } else {
+      field += ch
+    }
+  }
+  out.push(field)
+  return out
+}
 
 describe('resultsToCsv', () => {
   it('writes a header and one row per result', () => {
@@ -43,7 +61,26 @@ describe('resultsToCsv', () => {
   it('includes labels that could not be read, so nothing disappears', () => {
     const csv = resultsToCsv([result()], [{ filename: 'bad.png', message: 'unreadable' }])
     expect(csv).toContain('bad.png')
-    expect(csv).toContain('ERROR')
+    expect(csv).toContain('NOT PROCESSED')
+    expect(csv).toContain('unreadable')
+  })
+
+  it('keeps every row the same width as the header', () => {
+    // Error rows were once built from a hardcoded list of blanks, so adding a
+    // column silently shifted their values into the wrong ones.
+    const csv = resultsToCsv([result()], [{ filename: 'bad.png', message: 'unreadable' }])
+    const widths = new Set(rows(csv).map((line) => cells(line).length))
+    expect(widths.size).toBe(1)
+  })
+
+  it('carries the application side of the comparison', () => {
+    const csv = resultsToCsv([result({
+      application: { filename: 'cola.pdf', serial_number: '24-0417', extraction_source: 'form_fields', brand_name: 'OLD TOM DISTILLERY' },
+      pairing: { rule: 'sole_pair' },
+    })], [])
+    expect(csv).toContain('24-0417')
+    expect(csv).toContain('form_fields')
+    expect(csv).toContain('sole_pair')
   })
 
   it('quotes fields containing commas or quotes', () => {

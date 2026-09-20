@@ -111,10 +111,7 @@ def test_case_difference_surfaces_as_review_not_failure(client, label_bytes):
             "application": ("24-0418-application-case-differs.pdf", application, "application/pdf"),
         },
     )
-    brand = next(
-        c for c in r.json()["checks"]
-        if c["id"].startswith("MCH") and "brand" in c["name"].lower()
-    )
+    brand = next(c for c in r.json()["checks"] if c["id"].startswith("MCH") and "brand" in c["name"].lower())
     assert brand["status"] == Status.REVIEW
     assert brand["expected"] == "Old Tom Distillery"
     assert brand["observed"] == "OLD TOM DISTILLERY"
@@ -133,9 +130,7 @@ def test_serial_number_is_reported_so_pairing_can_be_audited(client, label_bytes
 
 def test_a_label_alone_still_runs_compliance(client, label_bytes):
     """The single-document path must not regress now that two are accepted."""
-    body = client.post(
-        "/api/verify", files={"file": ("l.png", label_bytes, "image/png")}
-    ).json()
+    body = client.post("/api/verify", files={"file": ("l.png", label_bytes, "image/png")}).json()
     assert body["application"] is None
     assert [c for c in body["checks"] if c["id"].startswith("VAL")]
     assert not [c for c in body["checks"] if c["id"].startswith("MCH")]

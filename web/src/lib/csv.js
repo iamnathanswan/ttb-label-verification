@@ -3,6 +3,11 @@
 const COLUMNS = [
   ['File', (r) => r.filename],
   ['Result', (r) => r.overall],
+  ['Application', (r) => r.application?.filename],
+  ['Serial number', (r) => r.application?.serial_number],
+  ['Paired by', (r) => r.pairing?.rule],
+  ['Application read', (r) => r.application?.extraction_source],
+  ['Application brand', (r) => r.application?.brand_name],
   ['Failed rules', (r) => r.checks.filter((c) => c.status === 'FAIL').map((c) => c.id).join(' ')],
   ['Needs review', (r) => r.checks.filter((c) => c.status === 'REVIEW' && !c.advisory).map((c) => c.id).join(' ')],
   ['Brand name', (r) => r.fields.brand_name],
@@ -30,7 +35,14 @@ const escape = (value) => {
 export function resultsToCsv(results, errors) {
   const lines = [COLUMNS.map(([h]) => escape(h)).join(',')]
   for (const r of results) lines.push(COLUMNS.map(([, get]) => escape(get(r))).join(','))
-  for (const e of errors) lines.push([escape(e.filename), 'ERROR', '', '', '', '', '', '', '', escape(e.message), ''].join(','))
+  for (const e of errors) {
+    const row = COLUMNS.map(([header]) =>
+      header === 'File' ? escape(e.filename)
+      : header === 'Result' ? 'NOT PROCESSED'
+      : header === 'Findings' ? escape(e.message)
+      : '')
+    lines.push(row.join(','))
+  }
   return lines.join('\n')
 }
 

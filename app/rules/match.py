@@ -106,8 +106,12 @@ def check_producer(application: ApplicationFields, fields: LabelFields) -> Check
 
     if not on_label:
         return CheckResult(
-            id="MCH-01", name="Producer matches application", status=Status.FAIL,
-            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=None,
+            id="MCH-01",
+            name="Producer matches application",
+            status=Status.FAIL,
+            citation=C.CITE_PRODUCER_NAME,
+            expected=declared,
+            observed=None,
             detail=f"The application names “{declared}” but no producer was found on the label.",
         )
 
@@ -115,15 +119,23 @@ def check_producer(application: ApplicationFields, fields: LabelFields) -> Check
 
     if declared_norm == label_norm:
         return CheckResult(
-            id="MCH-01", name="Producer matches application", status=Status.PASS,
-            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            id="MCH-01",
+            name="Producer matches application",
+            status=Status.PASS,
+            citation=C.CITE_PRODUCER_NAME,
+            expected=declared,
+            observed=on_label,
             detail="The producer on the label matches the applicant on the application.",
         )
 
     if label_norm in declared_norm or declared_norm in label_norm:
         return CheckResult(
-            id="MCH-01", name="Producer matches application", status=Status.PASS,
-            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            id="MCH-01",
+            name="Producer matches application",
+            status=Status.PASS,
+            citation=C.CITE_PRODUCER_NAME,
+            expected=declared,
+            observed=on_label,
             detail=(
                 "The producer on the label corresponds to the applicant on the application; "
                 "the application states the fuller name and address."
@@ -134,8 +146,12 @@ def check_producer(application: ApplicationFields, fields: LabelFields) -> Check
     declared_words, label_words = declared_norm.split(), label_norm.split()
     if declared_words[:2] and declared_words[:2] == label_words[:2]:
         return CheckResult(
-            id="MCH-01", name="Producer matches application", status=Status.REVIEW,
-            citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+            id="MCH-01",
+            name="Producer matches application",
+            status=Status.REVIEW,
+            citation=C.CITE_PRODUCER_NAME,
+            expected=declared,
+            observed=on_label,
             detail=(
                 "The producer and the applicant begin with the same name but differ afterwards. "
                 "Confirm they are the same entity — a trade name may be in use on the label."
@@ -143,15 +159,17 @@ def check_producer(application: ApplicationFields, fields: LabelFields) -> Check
         )
 
     return CheckResult(
-        id="MCH-01", name="Producer matches application", status=Status.FAIL,
-        citation=C.CITE_PRODUCER_NAME, expected=declared, observed=on_label,
+        id="MCH-01",
+        name="Producer matches application",
+        status=Status.FAIL,
+        citation=C.CITE_PRODUCER_NAME,
+        expected=declared,
+        observed=on_label,
         detail=f"The application names “{declared}” but the label states “{on_label}”.",
     )
 
 
-def check_all(
-    fields: LabelFields, application: ApplicationFields | None
-) -> list[CheckResult]:
+def check_all(fields: LabelFields, application: ApplicationFields | None) -> list[CheckResult]:
     """Compare the label against the application. Empty when none was paired.
 
     Both sides are extracted, so this compares what was read from the label to
@@ -170,12 +188,16 @@ def check_all(
 
     candidates = [
         _text_match(
-            id_="MCH-01", name="Brand name matches application",
-            expected=application.brand_name, observed=fields.brand_name,
+            id_="MCH-01",
+            name="Brand name matches application",
+            expected=application.brand_name,
+            observed=fields.brand_name,
         ),
         _text_match(
-            id_="MCH-01", name="Fanciful name matches application",
-            expected=application.fanciful_name, observed=fields.brand_name,
+            id_="MCH-01",
+            name="Fanciful name matches application",
+            expected=application.fanciful_name,
+            observed=fields.brand_name,
         ),
         check_producer(application, fields),
     ]
