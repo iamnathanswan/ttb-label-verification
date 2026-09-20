@@ -129,15 +129,22 @@ async def verify_batch(
 
     rejected: list[dict[str, str]] = []
 
-    candidates: list[Candidate] = []
-    for upload in applications or []:
+    async def read_application(upload: UploadFile) -> Candidate | dict[str, str]:
         name = upload.filename or "application.pdf"
         try:
             content = await _read(upload)
             fields = await _extract_application(content, name, request.app.state.provider)
-            candidates.append(Candidate(name, fields))
+            return Candidate(name, fields)
         except (UploadTooLarge, NotAnApplication, UnsupportedUpload, ExtractionError) as exc:
-            rejected.append({"filename": name, "message": f"Application could not be read: {exc}"})
+            return {"filename": name, "message": f"Application could not be read: {exc}"}
+
+    # Concurrently: a batch of scanned forms would otherwise read one at a time
+    # before any label is touched.
+    candidates: list[Candidate] = []
+    for outcome_item in await asyncio.gather(
+        *(read_application(u) for u in (applications or []))
+    ):
+        (candidates if isinstance(outcome_item, Candidate) else rejected).append(outcome_item)
 
     # A file too large for the per-file ceiling becomes one rejected label, not a
     # rejected submission (BAT-04). The rate limit was already charged for the

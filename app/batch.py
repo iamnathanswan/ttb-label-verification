@@ -13,7 +13,7 @@ earns a rate-limit rejection rather than throughput.
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable
 from dataclasses import dataclass
 
 from app.config import settings
@@ -31,18 +31,37 @@ class LabelUpload:
     pairing: PairingInfo | None = None
 
 
-async def verify_one(provider: ExtractionProvider, upload: LabelUpload) -> VerificationResult:
-    """Ingest, extract, and apply the rules to a single label."""
+async def verify_one(
+    provider: ExtractionProvider,
+    upload: LabelUpload,
+    *,
+    application_task: Awaitable[ApplicationFields] | None = None,
+) -> VerificationResult:
+    """Ingest, extract, and apply the rules to a single label.
+
+    `application_task` lets the caller hand over an application extraction that is
+    already in flight, so the two reads overlap rather than queue. It matters for
+    a scanned form, which needs a second model call: run sequentially that pushed
+    a pair to 7.6 s against a 5 s budget.
+    """
     started = time.perf_counter()
     # prepare() is CPU-bound — PDF rasterisation, Pillow decode, LANCZOS resize,
     # JPEG re-encode. Run inline it would occupy the event loop and stall the
     # flush of results that have already completed, which is precisely what
     # PRF-02 depends on.
     image, media_type = await asyncio.to_thread(prepare, upload.content)
-    fields, usage = await provider.extract(image, media_type)
+
+    if application_task is not None:
+        (fields, usage), application = await asyncio.gather(
+            provider.extract(image, media_type), application_task
+        )
+    else:
+        fields, usage = await provider.extract(image, media_type)
+        application = upload.application
+
     return verify(
         fields,
-        upload.application,
+        application,
         pairing=upload.pairing,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
         filename=upload.filename,
