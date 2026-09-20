@@ -9,9 +9,9 @@ const TYPE_LABEL = {
 }
 
 /**
- * The comparison an agent came here for: what the application declared, what the
- * label says, and whether they agree. Values on both sides were extracted, so
- * this is the tool showing its work rather than asking for it.
+ * The comparison an agent came here for (MCH-07, MCH-09): what the application
+ * declared, what the label says, and whether they agree. Values on both sides were
+ * extracted, so this is the tool showing its work rather than asking for it.
  */
 export default function Comparison({ result }) {
   const { application, pairing, fields, checks } = result

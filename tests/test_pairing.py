@@ -1,4 +1,4 @@
-"""Pairing labels to applications. No network."""
+"""Pairing labels to applications — MCH-10. No network."""
 
 from app.models import ApplicationFields, PairingRule
 from app.pairing import Candidate, pair

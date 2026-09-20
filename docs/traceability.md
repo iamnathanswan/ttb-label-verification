@@ -43,7 +43,12 @@ and the submission itself.
 | MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py` | `test_rules_match.py` | test |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a… | `app/models.py` | `test_rules_match.py` | test |
 | MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a… | — | `test_rules_match.py` | test |
-| MCH-06 | Expected values are optional; with none supplied the tool still… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_match.py` | test |
+| MCH-06 | An application is optional; with none supplied the tool still r… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_match.py` | test |
+| MCH-07 | Application values are extracted, never typed | `app/extract_application.py`<br>`web/src/components/Comparison.jsx` | `test_application_extraction.py` | test |
+| MCH-08 | Read the application from its form fields where possible; fall… | `app/extract_application.py` | `test_application_extraction.py` | test |
+| MCH-09 | Report how the application was read, so an agent can weigh the… | `app/extract_application.py`<br>`web/src/components/Comparison.jsx` | `test_application_extraction.py` | test |
+| MCH-10 | Pair labels to applications without guessing; report anything u… | `app/pairing.py` | `test_pairing.py` | test |
+| MCH-11 | Show the source documents beside the findings | `web/src/components/Documents.jsx` | `capture_screenshots.py` | measured |
 | PRF-01 | Single label returns results in ≈5 seconds | `app/config.py`<br>`app/ingest.py`<br>`app/providers/anthropic_provider.py` | `benchmark.py` | measured |
 | PRF-02 | Batch streams results as each label completes; first result vis… | `app/api.py`<br>`app/batch.py`<br>`web/src/lib/sse.js` | `test_load.py` | test |
 | PRF-03 | Measured elapsed time displayed per label | `app/models.py` | `benchmark.py` | measured |
@@ -73,4 +78,4 @@ and the submission itself.
 | OOS-05 | Formula approval, ingredient, or allergen review | — | — | out of scope |
 | OOS-06 | Full wine (Part 4) and malt beverage (Part 7) rule sets | — | — | out of scope |
 
-**42** verified by automated test · **4** by recorded measurement (`docs/perf.md`, `docs/verification.md`) · **6** satisfied by the deliverable itself, of 52 buildable requirements.
+**46** verified by automated test · **5** by recorded measurement (`docs/perf.md`, `docs/verification.md`) · **6** satisfied by the deliverable itself, of 57 buildable requirements.

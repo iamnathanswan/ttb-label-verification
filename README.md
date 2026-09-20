@@ -1,8 +1,9 @@
 # TTB Label Verification
 
-AI-assisted checking of alcohol beverage labels against the requirements in
-**27 CFR Parts 5 and 16**. Upload one label or a peak-season batch; get a verdict per
-label with the regulation cited for every finding.
+Drop in a label and the COLA application it belongs to. Both documents are read for you,
+compared field by field, and checked against **27 CFR Parts 5 and 16** — with the
+regulation cited for every finding and the source documents shown so you can verify the
+comparison rather than perform it.
 
 **Live:** https://ttb-label-verification-production-a79a.up.railway.app
 
@@ -18,28 +19,39 @@ Reads the printed information off a label image, then checks it against the regu
   body *not* bold per §16.22(a)(2), set apart from other information
 - **Mandatory fields** — brand name, class/type, alcohol content, net contents, producer
   name with its function phrase, country of origin for imports
-- **Against the application** — optionally compare the label to the values declared on the
-  COLA application (TTB F 5100.31), with the ±0.3 percentage-point alcohol tolerance
-  §5.65(c) allows
+- **Against the application** — compare the label to what was declared on the COLA
+  application (TTB F 5100.31)
 
 Every finding names the regulation it came from. Results stream in as each label
 finishes, so an agent starts work on a 300-label batch within about four seconds rather
 than waiting for the whole run.
 
-### Matching against the application
+### Nothing is retyped
 
-The field set follows the form rather than the interview notes, which changed two things.
+Sarah's description of the job is the clearest line in the brief: *"a lot of what we do is
+just... matching. My agents spend half their day doing what's essentially data entry
+verification."* A tool that asks an agent to type the application values in order to check
+them has not removed that work. So both documents are uploaded and both are read.
 
-The COLA application has **no class/type field** — TTB instructs applicants not to supply
-the designation, and doing so gets the application returned for correction. So there is
-nothing to compare a label's class/type against; it must still appear on the label, which
-`VAL-14` checks.
+**The application is read from the form itself.** TTB F 5100.31 is a fillable AcroForm, so
+a digitally completed application is read straight out of its fields — exact strings, no
+model, no inference. A form that was printed and scanned falls back to the same vision
+extraction the label uses. Which path ran is shown on every result, because an agent should
+know whether a value was read or inferred.
 
-It does have two fields worth more than any string comparison. **Field 3 declares Domestic
-or Imported**, which settles the country-of-origin requirement instead of inferring it from
-the producer's wording. **Field 5 declares the commodity**, which decides whether Part 5
-rules apply at all rather than guessing from the label — and a label that reads as something
-other than what was declared is itself a finding.
+**Pairing never guesses.** The serial number identifies an application, but it is never
+printed on a label — it is not a labelling requirement under Parts 4, 5, 7 or 16 — so the
+two cannot be matched by content. A single label and application pair directly; a batch
+pairs on the serial in the filename, then a shared filename, then an unambiguous brand. Two
+applications sharing a brand is a question, not a pair, and anything unmatched is reported
+with what would fix it.
+
+**The field set follows the form.** There is no class/type field — TTB instructs applicants
+not to supply it — and no net contents or alcohol content, both of which were removed; they
+are verified against the label's own requirements instead. What the form does declare is
+more useful than any string comparison: **field 3, Domestic or Imported**, settles the
+country-of-origin requirement instead of inferring it from the producer's wording, and
+**field 5** decides whether Part 5 applies at all rather than guessing from the label.
 
 ### Three results, not two
 
@@ -229,11 +241,16 @@ survive questioning.
 **Only distilled spirits rules are complete.** Wine and malt beverage labels get the
 warning checks and are otherwise marked unverified.
 
-**Import status is inferred when the application is not supplied.** Field 3 of the COLA
-application declares Domestic or Imported, and when it is given the country-of-origin
-requirement is settled definitively. Without it, import status can only be inferred from
-the producer's function phrase, so an imported product whose label never says so will not
-be caught.
+**Import status is inferred when no application is supplied.** Field 3 declares Domestic or
+Imported and settles the country-of-origin requirement definitively. Without an
+application, import status can only be inferred from the producer's function phrase, so an
+imported product whose label never says so will not be caught.
+
+**Pairing a large batch depends on filenames.** With one label and one application there is
+no ambiguity. Across hundreds, pairing works from the serial number or a shared filename;
+where neither is present it falls back to brand, and reports anything it cannot settle
+rather than guessing. A production deployment reading from COLA directly would not need
+this at all.
 
 **Extraction is not infallible.** The corpus covers ten deliberate defects and passes, but
 a sufficiently unusual layout may be misread. Low-confidence fields are reported, and the

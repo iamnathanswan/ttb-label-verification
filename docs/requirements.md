@@ -74,7 +74,12 @@ rather than hidden.
 | MCH-03 | ABV within **±0.3 percentage points** is a match | §5.65(c) | Derived |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a bare boolean | Dave: *"there's nuance. You can't just pattern match everything."* | Assumption |
 | MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a plain-language reason | Dave: *"Just don't make my life harder in the process."* | Assumption |
-| MCH-06 | Expected values are **optional**; with none supplied the tool still runs §B compliance checks | Resolves the A/B ambiguity in §J-1 | Assumption |
+| MCH-06 | An application is **optional**; with none supplied the tool still runs §B compliance checks | Resolves the ambiguity in §J-1 | Assumption |
+| MCH-07 | Application values are **extracted, never typed** | Sarah: *"half their day doing what's essentially data entry verification"* | Binding |
+| MCH-08 | Read the application from its form fields where possible; fall back to vision for scanned forms | TTB F 5100.31 is an AcroForm; exact beats inferred | Assumption |
+| MCH-09 | Report how the application was read, so an agent can weigh the value | — | Assumption |
+| MCH-10 | Pair labels to applications without guessing; report anything unmatched with how to fix it | The serial number is not printed on labels, so pairing cannot be settled by content | Assumption |
+| MCH-11 | Show the source documents beside the findings | A verification tool has to be checkable | Assumption |
 
 ## D. Performance
 
@@ -145,13 +150,24 @@ rather than hidden.
 ## J. Ambiguities identified and how we resolved them
 
 **J-1 — Is this label-only verification, or label-versus-application matching?**
-The interviews describe matching against an application record ("making sure the number on
-the form is the same as the number on the label"; Dave's STONE'S THROW example is a
-label-versus-application discrepancy). The Deliverables and sample describe extracting
-fields from a label, with no application record anywhere in the spec. *Resolution:* build
-both. Compliance validation (§B) always runs; expected application values are an optional
-input (manual entry for one label, CSV mapping for a batch) that enables §C. Neither
-reading can be wrong.
+The explicit requirements list label fields only. The interviews describe something
+else: Sarah says the review *is* matching — *"making sure the number on the form is the
+same as the number on the label. My agents spend half their day doing what's essentially
+data entry verification"* — and Dave's "STONE'S THROW" against "Stone's Throw" is
+explicitly label-versus-application.
+
+*First resolution, and why it was wrong.* This was originally resolved as "build both,
+with matching optional", taking application values by hand or by CSV. That satisfied the
+letter of both readings and defeated the point of one: a tool that asks an agent to type
+the application values is asking for exactly the work Sarah describes them drowning in.
+The CSV was worse — the application is a filled PDF form, so the input format was designed
+for an artifact that does not exist.
+
+*Resolution.* Both documents are uploaded and both are extracted. The label is read by a
+vision model; the application is read from the AcroForm fields of TTB F 5100.31, exactly
+and without a model, falling back to vision only where a form was printed and scanned.
+Nothing is retyped. Compliance still runs on a label submitted alone, so the narrower
+reading is fully served as well.
 
 **J-2 — Does "5 seconds" mean per label or per batch?**
 300 labels in 5 seconds is not achievable; 300 × 5 s sequentially is 25 minutes, which

@@ -70,6 +70,11 @@ async def main():
             )
             await page.keyboard.press("Tab")
 
+        # MCH-11 — the source documents must be shown beside the findings, or an
+        # agent has only the tool's word for what it read.
+        documents = await page.evaluate("() => document.querySelectorAll('.documents figure').length")
+        print("MCH-11 documents rendered:", documents)
+
         checks = await page.evaluate("""() => ({
             statusHasText: [...document.querySelectorAll('.check__name .sr-only')].length,
             liveRegions: document.querySelectorAll('[aria-live]').length,

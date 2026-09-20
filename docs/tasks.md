@@ -106,6 +106,22 @@ force design changes.
 | 6.6 | Final deploy; verify the public URL from a clean browser profile | DEL-04 | Works with no cached state |
 | 6.7 | Submit repo + URL via the Microsoft Forms link | DEL-06 | Submitted before 2026-09-23 |
 
+## Phase 7 — Automate the comparison (redesign)
+
+*Added after review. The matching layer had been built to take application values by
+hand, which asked an agent to perform the data entry the tool exists to remove — see
+`requirements.md` §J-1.*
+
+| # | Task | Satisfies | Done when |
+|---|---|---|---|
+| 7.1 | Read the application from TTB F 5100.31 AcroForm fields | MCH-07, MCH-08 | A digitally completed form is read with no model call |
+| 7.2 | Vision fallback for forms that were printed and scanned | MCH-08 | A flattened form still yields the same fields |
+| 7.3 | Report how the application was read | MCH-09 | Interface badges form fields against vision |
+| 7.4 | Pair labels to applications without guessing | MCH-10 | Ambiguity is reported, never resolved by assumption |
+| 7.5 | Accept both documents through the API and the interface | MCH-07 | Neither side is typed |
+| 7.6 | Show the source documents beside the findings | MCH-11 | Label and application both visible on a single review |
+| 7.7 | Generate application fixtures from the official blank form | — | Seven cases, each with a documented outcome |
+
 ---
 
 ## Buffer and cut order

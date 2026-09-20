@@ -149,3 +149,31 @@ def test_a_genuinely_different_producer_fails():
         LabelFields(producer_name="OLD TOM DISTILLERY"),
     )
     assert result.status is Status.FAIL
+
+
+# --- the invariant that must hold however extraction reads the case ----------
+
+
+@pytest.mark.parametrize(
+    "on_label,in_application",
+    [
+        ("STONE'S THROW", "Stone's Throw"),
+        ("Stone's Throw", "STONE'S THROW"),
+        ("OLD TOM DISTILLERY", "Old Tom Distillery"),
+        ("Old Tom Distillery", "Old Tom Distillery"),  # extraction may normalise case
+        ("OLD TOM DISTILLERY", "OLD TOM DISTILLERY"),
+    ],
+)
+def test_a_case_only_difference_never_fails(on_label, in_application):
+    """Dave's requirement, stated as an invariant rather than an outcome.
+
+    Whether extraction reports a label's brand in its printed capitals or folds it
+    is not fully under our control, so PASS and REVIEW are both acceptable here —
+    neither rejects the label. FAIL is not acceptable, in any direction, and that
+    is the property worth holding onto.
+    """
+    results = check_all(labelled(brand_name=on_label), ApplicationFields(brand_name=in_application))
+    brand = named(results, "brand")
+    assert brand.status is not Status.FAIL
+    if brand.status is Status.REVIEW:
+        assert brand.expected and brand.observed, "a review must show both values"

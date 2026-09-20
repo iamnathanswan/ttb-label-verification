@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Show the source documents beside the findings.
+ * Show the source documents beside the findings (MCH-11).
  *
  * A verification tool has to be checkable. An agent who cannot see what was read
  * has only the tool's word for it, and the whole point is to replace their manual

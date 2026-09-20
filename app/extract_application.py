@@ -1,4 +1,4 @@
-"""Read a COLA application — TTB F 5100.31.
+"""Read a COLA application — TTB F 5100.31 (MCH-07, MCH-08, MCH-09).
 
 Two paths, and which one ran is reported to the agent.
 
@@ -119,7 +119,9 @@ def looks_like_application(pdf_bytes: bytes) -> bool:
     return "LABEL/BOTTLE APPROVAL" in text or "TTB F 5100.31" in text
 
 
-SERIAL_PATTERN = re.compile(r"\b(\d{2})[-_ ]?(\d{3,6})\b")
+# A trailing \b will not match between a digit and an underscore, so
+# "24_0417_label.png" — an entirely ordinary export name — would not parse.
+SERIAL_PATTERN = re.compile(r"(?<![0-9])(\d{2})[-_ ](\d{3,6})(?![0-9])")
 
 
 def serial_from_filename(filename: str) -> str | None:

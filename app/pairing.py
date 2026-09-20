@@ -1,4 +1,4 @@
-"""Match labels to the applications they belong to.
+"""Match labels to the applications they belong to (MCH-10).
 
 The serial number is the unique identifier of an application — field 4, required —
 but it is never printed on the label, because it is not a labelling requirement

@@ -93,6 +93,21 @@ extract cannot have its type size evaluated — return `REVIEW`, not a guess.
 between stated and actual content, which governs `MCH-03` when matching a label against an
 application. It is not licence to round, reformat, or accept a missing ABV statement.
 
+**Both sides are extracted; nothing is typed.** The application is a filled
+TTB F 5100.31 and is read from its AcroForm widgets — exactly, with no model — falling
+back to vision only for a form that was printed and scanned. Asking an agent to type
+application values reintroduces the data entry the tool exists to remove (§J-1).
+
+**The serial number cannot pair by content.** It identifies an application (field 4) but
+is never printed on a label, so pairing works from filenames and, failing that, an
+unambiguous brand. Two candidates is a question, not a pair — `app/pairing.py` reports
+rather than guesses.
+
+**Source and type are radio groups read by export state**, not by position. Both source
+widgets sit at the same y coordinate, printed side by side, so sorting by position picks
+between Domestic and Imported arbitrarily. States are `Domes`/`Import` and
+`Wine`/`Spirits`/`Malt`.
+
 **Application values follow the form, not the interviews.** `ExpectedValues` mirrors
 TTB F 5100.31. There is no class/type field on it and no country-of-origin field; field 3
 declares Domestic or Imported and field 5 declares the commodity. Those two are
