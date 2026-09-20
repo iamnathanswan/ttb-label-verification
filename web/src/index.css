@@ -257,3 +257,6 @@ body:has(.drop--over) { background: #eef4fb; }
   .comparison table { font-size: .9rem; }
   .comparison tbody th { white-space: normal; }
 }
+
+.documents object { display: block; width: 100%; height: 30rem; border: 0; }
+.documents__fallback { margin: 0; padding: 2rem 1rem; text-align: center; color: var(--muted); }

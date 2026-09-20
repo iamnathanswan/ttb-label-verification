@@ -10,6 +10,18 @@ import { useEffect, useState } from 'react'
  * Both are rendered from object URLs; browsers display PDFs natively, so no
  * client-side PDF library is needed.
  */
+/** <object> falls back to its children where a PDF viewer is unavailable. */
+function Pdf({ url, name }) {
+  return (
+    <object data={url} type="application/pdf" aria-label={`Document: ${name}`}>
+      <p className="documents__fallback">
+        This browser cannot display the PDF inline.{' '}
+        <a href={url} target="_blank" rel="noreferrer">Open {name} in a new tab</a>.
+      </p>
+    </object>
+  )
+}
+
 export default function Documents({ labelFile, applicationFile }) {
   const [urls, setUrls] = useState({ label: null, application: null })
 
@@ -32,7 +44,7 @@ export default function Documents({ labelFile, applicationFile }) {
         <figure>
           <figcaption>Label — {labelFile.name}</figcaption>
           {labelFile.type === 'application/pdf' ? (
-            <embed src={urls.label} type="application/pdf" title={`Label: ${labelFile.name}`} />
+            <Pdf url={urls.label} name={labelFile.name} />
           ) : (
             <img src={urls.label} alt={`The label submitted as ${labelFile.name}`} />
           )}
@@ -41,11 +53,7 @@ export default function Documents({ labelFile, applicationFile }) {
       {urls.application && (
         <figure>
           <figcaption>Application — {applicationFile.name}</figcaption>
-          <embed
-            src={urls.application}
-            type="application/pdf"
-            title={`Application: ${applicationFile.name}`}
-          />
+          <Pdf url={urls.application} name={applicationFile.name} />
         </figure>
       )}
     </div>

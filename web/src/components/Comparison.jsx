@@ -30,7 +30,17 @@ export default function Comparison({ result }) {
     { label: 'Fanciful name', field: 7, application: application.fanciful_name, onLabel: fields.brand_name, check: outcomeFor('fanciful') },
     { label: 'Producer', field: 8, application: application.applicant_name, onLabel: [fields.producer_name, fields.producer_address].filter(Boolean).join(', '), check: outcomeFor('producer') },
     { label: 'Source of product', field: 3, application: application.source_of_product ? application.source_of_product[0].toUpperCase() + application.source_of_product.slice(1) : '', onLabel: fields.country_of_origin || '—', check: checks.find((c) => c.id === 'VAL-13'), note: 'Declares which rules apply' },
-    { label: 'Type of product', field: 5, application: TYPE_LABEL[application.type_of_product] || '', onLabel: TYPE_LABEL[fields.beverage_type] || '—', check: outcomeFor('product type'), note: 'Selects Part 4, 5 or 7' },
+    {
+      label: 'Type of product', field: 5,
+      application: TYPE_LABEL[application.type_of_product] || '',
+      onLabel: TYPE_LABEL[fields.beverage_type] || '—',
+      // A mismatch produces a finding; agreement produces none, so say so rather
+      // than leaving a dash an agent has to interpret.
+      check: outcomeFor('product type')
+        || (application.type_of_product && application.type_of_product === fields.beverage_type
+            ? { status: 'PASS' } : null),
+      note: 'Selects Part 4, 5 or 7',
+    },
   ].filter((row) => row.application)
 
   return (
