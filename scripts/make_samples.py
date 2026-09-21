@@ -21,33 +21,68 @@ OUT = ROOT / "samples"
 
 # (folder, label fixture, application fixture, what it demonstrates)
 PAIRS = [
-    ("01-everything-matches", "compliant_bourbon.png", "24-0417-application.pdf",
-     "A compliant label and the application that matches it. Expect PASS."),
-    ("02-brand-case-differs", "compliant_bourbon.png", "24-0418-application-case-differs.pdf",
-     "The application says “Old Tom Distillery”, the label says “OLD TOM DISTILLERY”. "
-     "Expect NEEDS REVIEW, not a rejection — it is obviously the same brand."),
-    ("03-wrong-brand", "compliant_bourbon.png", "24-0419-application-wrong-brand.pdf",
-     "The application declares a different brand entirely. Expect FAILED."),
-    ("04-declared-import-no-origin", "compliant_bourbon.png", "24-0420-application-imported.pdf",
-     "The application declares an imported product but the label states no country of "
-     "origin. Expect FAILED on 27 CFR 5.69 — the label alone gives no clue, so only "
-     "the application catches this."),
-    ("05-wrong-product-type", "compliant_bourbon.png", "24-0421-application-wine.pdf",
-     "The application declares wine; the label is a bourbon. Expect NEEDS REVIEW, and "
-     "note that distilled spirits rules are not applied to a product declared as wine."),
-    ("06-scanned-application", "compliant_bourbon.png", "24-0422-application-scanned.pdf",
-     "The same application printed and scanned, so it has no form fields left. Expect "
-     "PASS, and the application to be badged “read by sight” instead of "
-     "“read from form fields”."),
-    ("07-warning-body-bold", "warning_body_bold.png", "24-0417-application.pdf",
-     "The whole government warning is bold. 27 CFR 16.22(a)(2) bolds the heading and "
-     "forbids bolding the rest. Expect FAILED — and note OCR cannot see this at all."),
-    ("08-warning-title-case", "warning_title_case.png", "24-0417-application.pdf",
-     "The warning heading reads “Government Warning:” instead of capitals. "
-     "Expect FAILED, with the exact wording difference shown."),
-    ("09-label-only", "compliant_bourbon.png", None,
-     "No application at all. The regulation checks still run; the matching section is "
-     "simply not checked."),
+    (
+        "01-everything-matches",
+        "compliant_bourbon.png",
+        "24-0417-application.pdf",
+        "A compliant label and the application that matches it. Expect PASS.",
+    ),
+    (
+        "02-brand-case-differs",
+        "compliant_bourbon.png",
+        "24-0418-application-case-differs.pdf",
+        "The application says “Old Tom Distillery”, the label says “OLD TOM DISTILLERY”. "
+        "Expect NEEDS REVIEW, not a rejection — it is obviously the same brand.",
+    ),
+    (
+        "03-wrong-brand",
+        "compliant_bourbon.png",
+        "24-0419-application-wrong-brand.pdf",
+        "The application declares a different brand entirely. Expect FAILED.",
+    ),
+    (
+        "04-declared-import-no-origin",
+        "compliant_bourbon.png",
+        "24-0420-application-imported.pdf",
+        "The application declares an imported product but the label states no country of "
+        "origin. Expect FAILED on 27 CFR 5.69 — the label alone gives no clue, so only "
+        "the application catches this.",
+    ),
+    (
+        "05-wrong-product-type",
+        "compliant_bourbon.png",
+        "24-0421-application-wine.pdf",
+        "The application declares wine; the label is a bourbon. Expect NEEDS REVIEW, and "
+        "note that distilled spirits rules are not applied to a product declared as wine.",
+    ),
+    (
+        "06-scanned-application",
+        "compliant_bourbon.png",
+        "24-0422-application-scanned.pdf",
+        "The same application printed and scanned, so it has no form fields left. Expect "
+        "PASS, and the application to be badged “read by sight” instead of "
+        "“read from form fields”.",
+    ),
+    (
+        "07-warning-body-bold",
+        "warning_body_bold.png",
+        "24-0417-application.pdf",
+        "The whole government warning is bold. 27 CFR 16.22(a)(2) bolds the heading and "
+        "forbids bolding the rest. Expect FAILED — and note OCR cannot see this at all.",
+    ),
+    (
+        "08-warning-title-case",
+        "warning_title_case.png",
+        "24-0417-application.pdf",
+        "The warning heading reads “Government Warning:” instead of capitals. "
+        "Expect FAILED, with the exact wording difference shown.",
+    ),
+    (
+        "09-label-only",
+        "compliant_bourbon.png",
+        None,
+        "No application at all. The regulation checks still run; the matching section is simply not checked.",
+    ),
 ]
 
 
@@ -72,8 +107,15 @@ def main() -> int:
     ]
 
     expectations = {
-        "01": "PASS", "02": "NEEDS REVIEW", "03": "FAILED", "04": "FAILED",
-        "05": "NEEDS REVIEW", "06": "PASS", "07": "FAILED", "08": "FAILED", "09": "PASS",
+        "01": "PASS",
+        "02": "NEEDS REVIEW",
+        "03": "FAILED",
+        "04": "FAILED",
+        "05": "NEEDS REVIEW",
+        "06": "PASS",
+        "07": "FAILED",
+        "08": "FAILED",
+        "09": "PASS",
     }
 
     for folder, label, application, note in PAIRS:
