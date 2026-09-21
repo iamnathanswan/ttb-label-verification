@@ -31,13 +31,13 @@ body {
   font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
-main { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 6rem; }
+main { max-width: 68rem; margin: 0 auto; padding: 2rem 1.25rem 6rem; }
 
 h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 .5rem; }
 h2 { font-size: 1.25rem; margin: 2.5rem 0 .75rem; }
 h3 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
 h4 { font-size: 1rem; margin: 1.5rem 0 .25rem; }
-.lede { margin: 0 0 2rem; color: var(--muted); font-size: 1.05rem; max-width: 42rem; }
+.lede { margin: 0 0 2rem; color: var(--muted); font-size: 1.05rem; max-width: 46rem; }
 .note { color: var(--muted); font-size: .95rem; margin: .25rem 0 .75rem; }
 
 .sr-only {
@@ -214,32 +214,44 @@ body:has(.drop--over) { background: #eef4fb; }
   padding: .5rem .75rem; border-bottom: 1px solid var(--line); font-size: .92rem; }
 .drop .queue li:last-child { border-bottom: 0; }
 
-/* --- comparison table ------------------------------------------------------ */
+/* --- two columns: application on the left, regulations on the right ------- */
 
-.comparison { margin: 0 0 1.5rem; }
-.comparison__head { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
-.comparison__head h4 { margin: 0; }
+.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; align-items: start; }
+.columns .group { margin-top: 1.25rem; }
+/* A vertical rule makes the split legible without a heavier container. */
+.columns > .group + .group { border-left: 1px solid var(--line); padding-left: 2rem; }
+
+.comparison { margin: 0 0 1rem; }
+.comparison__head { display: flex; align-items: baseline; gap: .6rem;
+  flex-wrap: wrap; margin-top: .75rem; }
+.comparison__head h5 { margin: 0; font-size: .95rem; }
 .comparison__head code { background: var(--surface); border: 1px solid var(--line);
   border-radius: 4px; padding: .05rem .35rem; }
 .tag--form_fields { color: var(--pass); border-color: var(--pass); }
 .tag--vision { color: var(--review); border-color: var(--review); }
 
-.comparison table { width: 100%; border-collapse: collapse; margin: .75rem 0; font-size: .95rem; }
-.comparison th, .comparison td { text-align: left; padding: .55rem .6rem;
-  border-bottom: 1px solid var(--line); vertical-align: top; }
-.comparison thead th { font-size: .82rem; text-transform: uppercase;
-  letter-spacing: .04em; color: var(--muted); border-bottom-width: 2px; }
-.comparison tbody th { font-weight: 600; white-space: nowrap; }
-.comparison tbody th small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; }
-.comparison tbody th em { display: block; font-weight: 400; font-style: normal;
-  color: var(--muted); font-size: .78rem; }
-.comparison td code { background: var(--surface); border: 1px solid var(--line);
-  border-radius: 4px; padding: .1rem .35rem; overflow-wrap: anywhere; }
-.outcome { font-weight: 600; white-space: nowrap; }
+.fieldrows { list-style: none; margin: .75rem 0; padding: 0; }
+.fieldrow { padding: .6rem 0 .6rem .75rem; border-left: 3px solid var(--line);
+  border-bottom: 1px solid var(--line); }
+.fieldrow:last-child { border-bottom: 0; }
+.fieldrow--pass { border-left-color: var(--pass); }
+.fieldrow--review { border-left-color: var(--review); }
+.fieldrow--fail { border-left-color: var(--fail); }
+.fieldrow__head { display: flex; align-items: baseline; justify-content: space-between;
+  gap: .75rem; margin: 0; }
+.fieldrow__name { font-weight: 600; }
+.fieldrow__name small { font-weight: 400; color: var(--muted); font-size: .8rem; }
+.fieldrow__note { margin: .1rem 0 0; color: var(--muted); font-size: .78rem; }
+.fieldrow__values { display: grid; grid-template-columns: auto 1fr;
+  gap: .1rem .6rem; margin: .35rem 0 0; font-size: .92rem; }
+.fieldrow__values dt { color: var(--muted); }
+.fieldrow__values dd { margin: 0; min-width: 0; }
+.fieldrow__values code { background: var(--surface); border: 1px solid var(--line);
+  border-radius: 4px; padding: .05rem .3rem; overflow-wrap: anywhere; }
+.outcome { font-weight: 600; white-space: nowrap; font-size: .88rem; }
 .outcome--pass { color: var(--pass); }
 .outcome--review { color: var(--review); }
 .outcome--fail { color: var(--fail); }
-.outcome--none { color: var(--muted); }
 
 .card__serial { margin-right: .6rem; font-variant-numeric: tabular-nums; }
 
@@ -252,10 +264,15 @@ body:has(.drop--over) { background: #eef4fb; }
 .documents img { display: block; width: 100%; height: auto; }
 .documents embed { display: block; width: 100%; height: 30rem; border: 0; }
 
+/* Below roughly a tablet the columns stack; a two-column layout at this width
+   leaves neither side enough room for the values being compared. */
+@media (max-width: 58rem) {
+  .columns { grid-template-columns: 1fr; gap: 0; }
+  .columns > .group + .group { border-left: 0; padding-left: 0; }
+}
+
 @media (max-width: 46rem) {
   .zones, .documents { grid-template-columns: 1fr; }
-  .comparison table { font-size: .9rem; }
-  .comparison tbody th { white-space: normal; }
 }
 
 .documents object { display: block; width: 100%; height: 30rem; border: 0; }

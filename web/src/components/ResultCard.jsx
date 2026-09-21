@@ -84,6 +84,9 @@ export default function ResultCard({ result, defaultOpen, labelFile, application
 
       {open && (
         <div className="card__detail">
+          {/* Side by side: the two questions are read together, and seeing one
+              clear while the other is not is the comparison an agent makes. */}
+          <div className="columns">
           <section className="group">
             <h4>
               Against the application
@@ -114,6 +117,7 @@ export default function ResultCard({ result, defaultOpen, labelFile, application
               {compliance.map((c, i) => <Check key={`c-${c.id}-${i}`} check={c} />)}
             </ul>
           </section>
+          </div>
 
           {advisory.length > 0 && (
             <section className="group">
