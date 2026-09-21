@@ -59,9 +59,7 @@ def main() -> int:
             want = meta.get("expect_overall")
             ok = want is None or body["overall"] == want
             failures += not ok
-            findings = [
-                c["id"] for c in body["checks"] if c["status"] != "PASS" and not c["advisory"]
-            ]
+            findings = [c["id"] for c in body["checks"] if c["status"] != "PASS" and not c["advisory"]]
             print(
                 f"{'ok  ' if ok else 'MISS'} {name:42s} {body['overall']:6s} "
                 f"(want {want or '-':6s}) {elapsed:6.0f}ms  "
