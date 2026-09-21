@@ -5,6 +5,16 @@ import Documents from './Documents.jsx'
 const ICON = { PASS: '✓', REVIEW: '!', FAIL: '✕' }
 const WORD = { PASS: 'Passed', REVIEW: 'Needs review', FAIL: 'Failed' }
 
+/** A compact tally so each section states its own outcome. */
+function Count({ checks }) {
+  if (!checks.length) return <span className="count count--none">not checked</span>
+  const failed = checks.filter((c) => c.status === 'FAIL').length
+  const review = checks.filter((c) => c.status === 'REVIEW').length
+  if (failed) return <span className="count count--fail">{failed} failed</span>
+  if (review) return <span className="count count--review">{review} to check</span>
+  return <span className="count count--pass">all clear</span>
+}
+
 function Check({ check }) {
   return (
     <li className={`check check--${check.status.toLowerCase()}`}>
@@ -31,15 +41,22 @@ function Check({ check }) {
 
 export default function ResultCard({ result, defaultOpen, labelFile, applicationFile }) {
   const [open, setOpen] = useState(Boolean(defaultOpen))
-  const decidable = result.checks.filter((c) => !c.advisory)
-  const advisory = result.checks.filter((c) => c.advisory)
-  const failed = decidable.filter((c) => c.status === 'FAIL')
-  const review = decidable.filter((c) => c.status === 'REVIEW')
 
-  const summary =
-    failed.length ? `${failed.length} rule${failed.length > 1 ? 's' : ''} failed`
-    : review.length ? `${review.length} item${review.length > 1 ? 's' : ''} need review`
-    : 'No issues found in the checks that can be made from an image'
+  // Two different questions, answered differently. Compliance asks whether the
+  // label is lawful on its own terms; matching asks whether it agrees with the
+  // application, which is as often fixed by correcting the form as the label.
+  const decidable = result.checks.filter((c) => !c.advisory)
+  const matching = decidable.filter((c) => c.category === 'matching')
+  const compliance = decidable.filter((c) => c.category !== 'matching')
+  const advisory = result.checks.filter((c) => c.advisory)
+
+  const count = (list, status) => list.filter((c) => c.status === status).length
+  const parts = []
+  if (count(compliance, 'FAIL')) parts.push(`${count(compliance, 'FAIL')} rule${count(compliance, 'FAIL') > 1 ? 's' : ''} failed`)
+  if (count(matching, 'FAIL')) parts.push(`${count(matching, 'FAIL')} mismatch${count(matching, 'FAIL') > 1 ? 'es' : ''}`)
+  const reviews = count(compliance, 'REVIEW') + count(matching, 'REVIEW')
+  if (reviews) parts.push(`${reviews} to check`)
+  const summary = parts.join(' · ') || 'No issues found in the checks that can be made from an image'
 
   return (
     <article className={`card card--${result.overall.toLowerCase()}`}>
@@ -67,14 +84,39 @@ export default function ResultCard({ result, defaultOpen, labelFile, application
 
       {open && (
         <div className="card__detail">
-          <Comparison result={result} />
+          <section className="group">
+            <h4>
+              Against the application
+              <Count checks={matching} />
+            </h4>
+            <p className="note">
+              Does the label say what was declared on the COLA application? A disagreement
+              here is as often corrected on the form as on the label.
+            </p>
+            <Comparison result={result} />
+            {matching.length > 0 && (
+              <ul className="checks">
+                {matching.map((c, i) => <Check key={`m-${c.id}-${i}`} check={c} />)}
+              </ul>
+            )}
+          </section>
 
-          <h4>Against the regulations</h4>
-          <ul className="checks">
-            {decidable.map((c, i) => <Check key={`${c.id}-${i}`} check={c} />)}
-          </ul>
+          <section className="group">
+            <h4>
+              Against the regulations
+              <Count checks={compliance} />
+            </h4>
+            <p className="note">
+              Is the label lawful on its own terms? Answered from the label and 27 CFR
+              alone — a label can match its application exactly and still fail here.
+            </p>
+            <ul className="checks">
+              {compliance.map((c, i) => <Check key={`c-${c.id}-${i}`} check={c} />)}
+            </ul>
+          </section>
+
           {advisory.length > 0 && (
-            <>
+            <section className="group">
               <h4>Requires physical inspection</h4>
               <p className="note">
                 These depend on measurement a photograph cannot supply, so they apply to
@@ -83,7 +125,7 @@ export default function ResultCard({ result, defaultOpen, labelFile, application
               <ul className="checks">
                 {advisory.map((c, i) => <Check key={`adv-${c.id}-${i}`} check={c} />)}
               </ul>
-            </>
+            </section>
           )}
 
           <Documents labelFile={labelFile} applicationFile={applicationFile} />

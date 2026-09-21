@@ -74,3 +74,45 @@ def test_result_separates_failures_reviews_and_advisories():
 def test_application_fields_are_all_optional():
     """MCH-06 — the tool must work with no application at all."""
     assert ApplicationFields().is_empty
+
+
+# --- two questions, kept apart ------------------------------------------------
+
+
+def test_checks_are_categorised_by_the_question_they_answer():
+    """Compliance and matching are acted on differently.
+
+    A label can match its application exactly and still be unlawful, and can be
+    perfectly lawful while disagreeing with the form — which is as often fixed by
+    correcting the application as the label.
+    """
+    result = VerificationResult(
+        overall=Status.FAIL,
+        fields=LabelFields(),
+        elapsed_ms=0,
+        checks=[
+            CheckResult(id="VAL-01", name="warning", status=Status.FAIL, detail="x"),
+            CheckResult(id="MCH-01", name="brand", status=Status.REVIEW, detail="x"),
+            CheckResult(id="VAL-08", name="type size", status=Status.REVIEW, detail="x", advisory=True),
+            CheckResult(id="EXT-09", name="legible", status=Status.REVIEW, detail="x"),
+        ],
+    )
+    assert [c.id for c in result.matching_checks] == ["MCH-01"]
+    assert [c.id for c in result.compliance_checks] == ["VAL-01", "EXT-09"]
+    assert [c.id for c in result.advisories] == ["VAL-08"]
+
+
+def test_category_is_serialised_for_the_interface():
+    check = CheckResult(id="MCH-01", name="brand", status=Status.PASS, detail="x")
+    assert check.model_dump()["category"] == "matching"
+
+
+def test_a_label_with_no_application_has_no_matching_checks():
+    result = VerificationResult(
+        overall=Status.PASS,
+        fields=LabelFields(),
+        elapsed_ms=0,
+        checks=[CheckResult(id="VAL-01", name="warning", status=Status.PASS, detail="x")],
+    )
+    assert result.matching_checks == []
+    assert result.compliance_checks

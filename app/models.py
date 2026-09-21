@@ -8,7 +8,7 @@ so the shape is declared exactly once.
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class Status(StrEnum):
@@ -150,6 +150,20 @@ class PairingInfo(BaseModel):
     detail: str = ""
 
 
+CheckCategory = Literal["matching", "compliance", "extraction"]
+"""Which question a finding answers.
+
+Two different things are being asked, and an agent acts on them differently.
+*Compliance* asks whether the label is lawful on its own terms — it is answered
+from the label and the CFR alone. *Matching* asks whether the label agrees with
+what was declared on the application, which is a question about two documents and
+is often resolved by correcting the application rather than the label.
+
+Keeping them apart matters because a label can match its application perfectly and
+still be illegal, and can be perfectly lawful while disagreeing with the form.
+"""
+
+
 class CheckResult(BaseModel):
     """One rule, one outcome, one citation."""
 
@@ -161,6 +175,12 @@ class CheckResult(BaseModel):
     expected: str | None = None
     observed: str | None = None
     advisory: bool = Field(False, description="True where a photograph cannot decide the rule (VAL-06..09)")
+
+    @computed_field
+    @property
+    def category(self) -> CheckCategory:
+        """Derived from the requirement ID, so it cannot drift from the rule."""
+        return {"MCH": "matching", "EXT": "extraction"}.get(self.id[:3], "compliance")
 
 
 class VerificationResult(BaseModel):
@@ -187,3 +207,13 @@ class VerificationResult(BaseModel):
     def advisories(self) -> list[CheckResult]:
         """Checks a photograph cannot decide. Constant across labels; shown, not scored."""
         return [c for c in self.checks if c.advisory]
+
+    @property
+    def compliance_checks(self) -> list[CheckResult]:
+        """Is this label lawful on its own terms? Answered from the label and the CFR."""
+        return [c for c in self.checks if not c.advisory and c.category != "matching"]
+
+    @property
+    def matching_checks(self) -> list[CheckResult]:
+        """Does the label agree with the application? Empty when none was paired."""
+        return [c for c in self.checks if not c.advisory and c.category == "matching"]
