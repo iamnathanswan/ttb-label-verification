@@ -93,8 +93,18 @@ cd web && npm install && npm run build && cd ..
 .venv/bin/uvicorn app.main:app --reload    # http://localhost:8000
 ```
 
-Sample labels to try are in `tests/fixtures/labels/` — `compliant_bourbon.png` passes,
-`warning_title_case.png` fails two rules and shows the word-level diff.
+### Try it
+
+Ready-made pairs are in [`samples/`](samples/) — a label and the COLA application it
+belongs to, with a note on what each should do. Drop both files on the page together.
+
+| | |
+|---|---|
+| `01-everything-matches` | The clean path |
+| `02-brand-case-differs` | `STONE'S THROW` against `Stone's Throw` — review, not rejection |
+| `04-declared-import-no-origin` | Caught only because the application declares it |
+| `06-scanned-application` | A printed-and-scanned form, read by sight |
+| `07-warning-body-bold` | §16.22(a)(2) — a defect OCR cannot see at all |
 
 Or with Docker, which is what deploys:
 
@@ -111,6 +121,38 @@ python scripts/gen_traceability.py --check # fails if a requirement has no test
 ```
 
 ---
+
+## Why a model, and not OCR
+
+A fair question, so it was measured rather than assumed.
+
+On a clean label Tesseract reads everything correctly in about 520 ms, for free, case
+included. If reading text were the whole job, a model would be over-engineering. Two
+things stop it being the whole job.
+
+**Typography is invisible to OCR.** `compliant_bourbon.png` and `warning_body_bold.png`
+produce byte-identical OCR output. The only difference between those labels is that the
+warning body is bold, which §16.22(a)(2) forbids. `VAL-03` and `VAL-04` cannot be built on
+text extraction at all.
+
+**Photographs break it.** The same label rotated 7°, lightly blurred and with glare across
+the middle — Jenny's exact scenario:
+
+| | Tesseract | This tool |
+|---|---|---|
+| Brand, class/type, ABV, net contents | all lost | all read |
+| Warning text | `"rink ay beverages uring"` | matches §16.21 exactly |
+| Verdict | would **FAIL** a compliant label | `PASS` |
+
+A false rejection is the worst error this tool can make; it is how the previous vendor
+pilot lost its users.
+
+**Cost, measured:** `$0.0121` per label with the prompt cache warm. Across 150,000
+applications a year that is about **$1,800** — against roughly **$787,000** of review time
+at 47 agents and 5–10 minutes each. Inference is a rounding error on the work it assists.
+
+Where something *can* be read mechanically, it is: a digitally completed application is
+read from its AcroForm fields in about 10 ms with no model call at all.
 
 ## Approach
 
