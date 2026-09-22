@@ -38,7 +38,7 @@ function Check({ check }) {
   )
 }
 
-export default function ResultCard({ result, defaultOpen }) {
+export default function ResultCard({ result, defaultOpen, stacked = false }) {
   const [open, setOpen] = useState(Boolean(defaultOpen))
 
   // Two different questions, answered differently. Compliance asks whether the
@@ -85,7 +85,7 @@ export default function ResultCard({ result, defaultOpen }) {
         <div className="card__detail">
           {/* Side by side: the two questions are read together, and seeing one
               clear while the other is not is the comparison an agent makes. */}
-          <div className="columns">
+          <div className={stacked ? 'columns columns--stacked' : 'columns'}>
           <section className="group">
             <h4>
               Against the application
