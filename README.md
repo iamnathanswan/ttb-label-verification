@@ -28,10 +28,10 @@ than waiting for the whole run.
 
 ### Nothing is retyped
 
-Sarah's description of the job is the clearest line in the brief: *"a lot of what we do is
-just... matching. My agents spend half their day doing what's essentially data entry
-verification."* A tool that asks an agent to type the application values in order to check
-them has not removed that work. So both documents are uploaded and both are read.
+Sarah describes the job plainly: *"a lot of what we do is just... matching. My agents
+spend half their day doing what's essentially data entry verification."* A tool that asks
+an agent to type the application values in order to check them has not removed that work.
+So both documents are uploaded and both are read.
 
 **The application is read from the form itself.** TTB F 5100.31 is a fillable AcroForm, so
 a digitally completed application is read straight out of its fields — exact strings, no
@@ -46,9 +46,10 @@ pairs on the serial in the filename, then a shared filename, then an unambiguous
 applications sharing a brand is a question, not a pair, and anything unmatched is reported
 with what would fix it.
 
-**The field set follows the form.** There is no class/type field — TTB instructs applicants
-not to supply it — and no net contents or alcohol content, both of which were removed; they
-are verified against the label's own requirements instead. What the form does declare is
+**The field set follows the form.** There is no field for the class/type designation —
+field 5 declares the commodity, wine or spirits or malt beverages, which is a different
+thing — and none for net contents or alcohol content. Those are verified against the
+label's own requirements instead. What the form does declare is
 more useful than any string comparison: **field 3, Domestic or Imported**, settles the
 country-of-origin requirement instead of inferring it from the producer's wording, and
 **field 5** decides whether Part 5 applies at all rather than guessing from the label.

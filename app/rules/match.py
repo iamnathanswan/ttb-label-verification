@@ -176,10 +176,10 @@ def check_all(fields: LabelFields, application: ApplicationFields | None) -> lis
     what was read from the form — no one retypes anything, which is the point.
 
     Only what the form actually declares is compared. Net contents and alcohol
-    content are not fields on TTB F 5100.31: TTB removed them, and field 15 asks
-    for container wording only where it does *not* appear on the labels. They are
-    verified against the label's own requirements instead (VAL-11, VAL-14,
-    VAL-08). Source and type are declarations that decide which rules apply, so
+    content are not fields on TTB F 5100.31 — field 15 asks for container wording
+    only where it does *not* appear on the labels, which is a fallback rather than
+    a value to compare. Both are verified against the label's own requirements
+    instead (VAL-11, VAL-14, VAL-08). Source and type are declarations that decide which rules apply, so
     they are consumed by VAL-13 and by the commodity gating in `engine.py` rather
     than matched field to field.
     """

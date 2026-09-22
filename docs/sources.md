@@ -105,10 +105,12 @@ Approval*, OMB No. 1513-0020 — the form the tool reads. Field numbers used in
 
 Two things about it that surprise people:
 
-- **It carries no alcohol content and no net contents field.** TTB removed them;
-  field 15 asks for container wording only where it does *not* appear on the
-  labels. Both are checked against the label's own requirements (VAL-11, VAL-14,
-  VAL-08) rather than compared to a form that does not collect them.
+- **It carries no alcohol content and no net contents field.** Field 15 asks only
+  for information "blown, branded, or embossed on the container (e.g., net
+  contents) ONLY IF IT DOES NOT APPEAR ON THE LABELS AFFIXED BELOW" — a fallback
+  for what the label leaves off, not a declared value. Both are checked against the
+  label's own requirements (VAL-11, VAL-14, VAL-08) rather than compared to a form
+  that does not collect them.
 - **It runs JavaScript on open** — an alert about LEGAL paper. See
   `docs/security.md` finding 6.
 

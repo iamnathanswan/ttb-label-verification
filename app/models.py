@@ -104,12 +104,17 @@ class ApplicationFields(BaseModel):
 
     The field set follows the current form. Two absences are deliberate:
 
-    - **No class/type.** TTB instructs applicants not to supply the designation and
-      returns applications that do, so there is nothing to compare against. The
-      designation must still appear on the label; VAL-14 checks that.
-    - **No net contents or alcohol content.** Both were removed from the form —
-      field 15 asks for container wording only where it does *not* appear on the
-      labels. TTB reads them off the label, and so do we (VAL-11, VAL-14, VAL-08).
+    - **No class/type designation.** The form has no field for it. Field 5 declares
+      the commodity — wine, distilled spirits or malt beverages — which is a
+      different thing from the designation ("Kentucky Straight Bourbon Whiskey").
+      So there is nothing to compare against. The designation must still appear on
+      the label, and VAL-14 checks that it does.
+    - **No net contents or alcohol content.** The form asks for neither. Field 15
+      asks only for information "blown, branded, or embossed on the container
+      (e.g., net contents) ONLY IF IT DOES NOT APPEAR ON THE LABELS AFFIXED BELOW",
+      which is a fallback for wording the label omits, not a value to compare
+      against. Both are checked against the label's own requirements instead
+      (VAL-11, VAL-14, VAL-08).
     """
 
     serial_number: str = Field("", description="Field 4, assembled from year and serial boxes")
