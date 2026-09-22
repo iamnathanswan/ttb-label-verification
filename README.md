@@ -28,7 +28,7 @@ than waiting for the whole run.
 
 ### Nothing is retyped
 
-Sarah describes the job plainly: *"a lot of what we do is just... matching. My agents
+Sarah describes the job plainly: *"a lot of what we do is just... matching. […] My agents
 spend half their day doing what's essentially data entry verification."* A tool that asks
 an agent to type the application values in order to check them has not removed that work.
 So both documents are uploaded and both are read.
@@ -152,9 +152,10 @@ the middle — Jenny's exact scenario:
 A false rejection is the worst error this tool can make; it is how the previous vendor
 pilot lost its users.
 
-**Cost, measured:** `$0.0121` per label with the prompt cache warm. Across 150,000
-applications a year that is about **$1,800** — against roughly **$787,000** of review time
-at 47 agents and 5–10 minutes each. Inference is a rounding error on the work it assists.
+**Cost, measured:** `$0.0121` per label with the prompt cache warm. Across the 150,000
+applications TTB handles a year that is about **$1,800**. The same 150,000 at the 5–10
+minutes Sarah quotes is **12,500 to 25,000 hours** of review time. Whatever an hour of
+that is worth, inference is a rounding error against it.
 
 Where something *can* be read mechanically, it is: a digitally completed application is
 read from its AcroForm fields in about 10 ms with no model call at all.
