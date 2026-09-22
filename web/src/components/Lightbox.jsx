@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const isPdf = (file) =>
   file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -19,6 +20,12 @@ const isPdf = (file) =>
  *
  * Modal behaviour is hand-rolled rather than borrowed: Escape closes, focus moves
  * in and returns to whatever opened it, and Tab is kept inside while it is open.
+ *
+ * Rendered through a portal to <body>. The document pane it is opened from is
+ * sticky, which makes it a stacking context, and a z-index set inside one is only
+ * ever compared against its siblings — so the overlay was painting *underneath*
+ * the sticky upload bar and hiding its own close button. A modal belongs at the
+ * top of the document, not wherever it happened to be triggered from.
  */
 export default function Lightbox({ file, onClose }) {
   const [url, setUrl] = useState(null)
@@ -99,7 +106,7 @@ export default function Lightbox({ file, onClose }) {
 
   if (!file) return null
 
-  return (
+  return createPortal(
     <div className="lightbox" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div
         className="lightbox__panel"
@@ -131,6 +138,7 @@ export default function Lightbox({ file, onClose }) {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

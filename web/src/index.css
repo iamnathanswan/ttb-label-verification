@@ -412,7 +412,7 @@ body:has(.drop--over) { background: #eef4fb; }
 .linkish:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 
 .lightbox {
-  position: fixed; inset: 0; z-index: 50; display: flex; padding: 2rem;
+  position: fixed; inset: 0; z-index: 100; display: flex; padding: 2rem;
   background: rgba(22, 25, 29, .72); backdrop-filter: blur(2px);
 }
 .lightbox__panel {
