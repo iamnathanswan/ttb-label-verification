@@ -11,6 +11,54 @@ Built as a take-home assessment for IT Specialist (AI), Treasury Common Services
 
 ---
 
+## The short version
+
+*The rest of this file is the long version. This is approach, tools and assumptions in
+about a minute.*
+
+**Approach.** The model reads; code judges. Exactly one call is non-deterministic and it
+returns a validated `LabelFields` object — every compliance decision after that is a pure
+function over it, so each finding carries the CFR section it came from and the rule suite
+runs in milliseconds with no API key. Both the label *and* the COLA application are
+extracted, because a tool that asks an agent to type the application values has not removed
+the data entry it exists to remove. Results are `PASS` / `REVIEW` / `FAIL`, never a boolean.
+
+**Tools.** Python 3.12 · FastAPI · Pydantic · PyMuPDF · Pillow · pytest · ruff · React 18 ·
+Vite · vitest · Docker → Railway · GitHub Actions · Claude Sonnet 5 for extraction.
+Sonnet was chosen by measurement, not preference: Opus 5 missed the ~5 s requirement at
+5,590 ms. [Why each of these](#technical-choices-and-why).
+
+**Assumptions.** Five things in the brief were genuinely ambiguous and were resolved rather
+than asked — whether this is label-only checking or label-versus-application matching, what
+"about 5 seconds" is measured against, which beverage types to support, where the warning
+text comes from, and whether an external model API is acceptable given TTB's firewall. Each
+is written up with its resolution in [Assumptions](#assumptions-and-open-questions) and
+`docs/requirements.md` §J. One of them was resolved *wrongly* first and rebuilt;
+[that is documented too](#the-design-was-wrong-once-and-the-specification-is-where-that-is-recorded).
+
+**Known limits.** Physical measurements — type size, characters per inch — are advisory,
+because a photograph carries no scale. Only distilled spirits rules are complete; wine and
+malt beverage labels get the universal warning checks and are otherwise marked unverified.
+No authentication, no persistence, no COLA integration. [All limitations](#limitations).
+
+### Contents
+
+| | |
+|---|---|
+| [What it does](#what-it-does) | The checks, and how both documents are read |
+| [Quickstart](#quickstart) | Clone, install, run — and sample documents to try |
+| [Why a model, and not OCR](#why-a-model-and-not-ocr) | Measured against Tesseract |
+| [Approach](#approach) | The one architectural invariant, and what follows from it |
+| [Technical choices](#technical-choices-and-why) | Each decision, and the alternative rejected |
+| [The production path](#the-production-path-azure-fedramp-and-the-firewall) | Azure, FedRAMP, and the firewall constraint |
+| [How this was built](#how-this-was-built) | Specification-first, including the part that went wrong |
+| [Measured](#measured) | Latency, batch throughput, corpus results |
+| [Assumptions](#assumptions-and-open-questions) | The five ambiguities and how each was resolved |
+| [Limitations](#limitations) | What this does not do |
+| [Security](#security) | Findings and disposition |
+
+---
+
 ## What it does
 
 Reads the printed information off a label image, then checks it against the regulations:
