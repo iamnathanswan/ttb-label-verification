@@ -21,7 +21,7 @@ force design changes.
 | 0.1 | Init repo, `pyproject.toml`, ruff + pytest config, `.gitignore` | DEL-01 | `pytest` runs green on an empty suite |
 | 0.2 | FastAPI app with `/api/health`; Vite React app with a placeholder screen | — | Both run locally |
 | 0.3 | Multi-stage Dockerfile: Vite build → Python runtime serving `dist/` via StaticFiles | DEL-01 | `docker run` serves the UI and `/api/health` on one port |
-| 0.4 | Deploy to Render; API key as an environment variable | DEL-04, OPS-04 | Public HTTPS URL returns the placeholder UI |
+| 0.4 | Deploy to Railway; API key as an environment variable | DEL-04, OPS-04 | Public HTTPS URL returns the placeholder UI |
 | 0.5 | `docs/traceability.md` skeleton — one row per requirement ID, all `TODO` | — | All 58 IDs present |
 
 ## Phase 1 — Extraction (day 2)
@@ -30,7 +30,7 @@ force design changes.
 
 | # | Task | Satisfies | Done when |
 |---|---|---|---|
-| 1.1 | `models.py` — `LabelFields`, `ExpectedValues`, `CheckResult`, `VerificationResult` | EXT-01..08 | Models import; schema round-trips |
+| 1.1 | `models.py` — `LabelFields`, `ApplicationFields` (named `ExpectedValues` until 7.1), `CheckResult`, `VerificationResult` | EXT-01..08 | Models import; schema round-trips |
 | 1.2 | `providers/base.py` — `ExtractionProvider` ABC; `StubProvider` returning fixtures | OPS-02 | Tests run with no network |
 | 1.3 | `ingest.py` — decode, EXIF-normalise, downscale to ≤1600 px, PDF first page | EXT-10, PRF-04 | Rotated and oversized inputs normalise correctly |
 | 1.4 | `anthropic_provider.py` — `messages.parse()` with `output_format=LabelFields`, base64 image block, `effort: "low"`, `max_tokens≈2000` | EXT-01..09 | Sample bourbon label extracts all fields |
@@ -65,10 +65,10 @@ force design changes.
 | 3.2 | `POST /api/verify/batch` — SSE, one `result` event per completion | BAT-01, PRF-02 | First event arrives within the `PRF-01` budget |
 | 3.3 | Bounded concurrency via `asyncio.Semaphore`; `AsyncAnthropic` + aiohttp backend | BAT-06 | Ceiling configurable; respected under load |
 | 3.4 | Per-label isolation — one failure emits `error` and the batch continues | BAT-04 | Corrupt file mid-batch does not abort |
-| 3.5 | CSV expected-values mapping for batches | MCH-01, BAT-05 | CSV columns map to `ExpectedValues` |
+| ~~3.5~~ | ~~CSV expected-values mapping for batches~~ — **superseded by 7.1/7.5.** Built, then removed: a CSV of application values is data entry by another name, and the application is a filled PDF, not a spreadsheet (§J-1) | — | Removed |
 | 3.6 | Rate limiting, request size cap, per-batch file ceiling | OPS-05 | Limits enforced and tested |
-| 3.8 | Strip JavaScript, attachments and link actions from a PDF before the browser displays it | OPS-07 | Form values survive; no script body remains |
 | 3.7 | Confirm nothing persists to disk or database | OPS-01 | No writes outside `/tmp` during a request |
+| 3.8 | Strip JavaScript, attachments and link actions from a PDF before the browser displays it | OPS-07 | Form values survive; no script body remains |
 
 ## Phase 4 — Interface (day 5)
 
@@ -78,7 +78,7 @@ force design changes.
 | 4.2 | Result card: status word + icon, per-check rows, expected vs. observed, CFR citation | MCH-05, UX-04 | Readable without colour perception |
 | 4.3 | Client-side downscale before upload | PRF-04 | Upload payload measurably smaller |
 | 4.4 | Streaming batch view with progress and summary | BAT-03, PRF-02 | Cards appear progressively |
-| 4.5 | Optional expected-values panel; CSV upload for batch | MCH-06, BAT-05 | Hidden until requested |
+| ~~4.5~~ | ~~Optional expected-values panel; CSV upload for batch~~ — **superseded by 7.5.** Both sides are extracted now; nothing is typed | — | Removed |
 | 4.6 | Per-label elapsed time displayed | PRF-03 | Visible on every card |
 | 4.7 | CSV export of batch results | BAT-05 | Downloads a well-formed file |
 | 4.8 | Accessibility pass — keyboard, focus order, live regions, AA contrast, 16 px minimum | UX-02, UX-04..06 | Keyboard-only run completes; axe reports no violations |
@@ -131,9 +131,11 @@ Day 7 is deliberately light. If time runs short, cut in this order — every ite
 an `Assumption`-tier requirement, never a `Binding` one:
 
 1. CSV export (`BAT-05`)
-2. CSV expected-values mapping (`MCH-01` retains manual entry)
-3. Per-field confidence display (`EXT-08` still computed internally)
-4. Characters-per-inch check (`VAL-09`; `VAL-08` covers type size)
+2. Per-field confidence display (`EXT-08` still computed internally)
+3. Characters-per-inch check (`VAL-09`; `VAL-08` covers type size)
 
 Anything cut moves to a "Known limitations" section in the README rather than being
 silently dropped.
+
+*Nothing was cut.* The second entry on the original list — CSV expected-values mapping —
+was removed for being wrong rather than for being expendable, and Phase 7 replaced it.

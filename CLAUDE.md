@@ -13,9 +13,9 @@ Take-home assessment for IT Specialist (AI), Treasury Common Services Center.
 
 | Document | What it holds |
 |---|---|
-| `docs/requirements.md` | 58 requirements with stable IDs. The source of truth. |
+| `docs/requirements.md` | 64 requirements with stable IDs — 58 buildable, 6 explicitly out of scope. The source of truth. |
 | `docs/plan.md` | Architecture, data contracts, decisions D1–D8, risks. |
-| `docs/tasks.md` | Seven phases, 45 tasks, each carrying its REQ IDs. |
+| `docs/tasks.md` | Eight phases (0–7), 57 tasks, each carrying its REQ IDs. Superseded tasks are struck through rather than deleted. |
 | `docs/traceability.md` | Coverage matrix. Generated — never edit by hand. |
 | `docs/sources.md` | Every citation with a link to the regulation, for checking the rules against the text. |
 | `docs/security.md` | Security review findings and what was accepted. |
@@ -117,7 +117,7 @@ widgets sit at the same y coordinate, printed side by side, so sorting by positi
 between Domestic and Imported arbitrarily. States are `Domes`/`Import` and
 `Wine`/`Spirits`/`Malt`.
 
-**Application values follow the form, not the interviews.** `ExpectedValues` mirrors
+**Application values follow the form, not the interviews.** `ApplicationFields` mirrors
 TTB F 5100.31. There is no class/type field on it and no country-of-origin field; field 3
 declares Domestic or Imported and field 5 declares the commodity. Those two are
 declarations that decide *which rules apply* — they drive `VAL-13` and the commodity

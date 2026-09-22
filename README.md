@@ -351,7 +351,7 @@ app/
   api.py  batch.py  limits.py
 web/src/             React — one screen, streaming results, CSV export
 docs/
-  requirements.md    58 requirements; binding ones quote their source
+  requirements.md    64 requirements (58 buildable, 6 out of scope); binding ones quote their source
   plan.md            architecture and decisions D1–D8
   perf.md            latency, and everything tried that did not help
   verification.md    corpus results (generated)
