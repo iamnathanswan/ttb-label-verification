@@ -237,7 +237,7 @@ export default function App() {
               {/* The worst result opens on arrival so an agent sees a finding
                   immediately; the rest stay collapsed to keep a batch scannable. */}
               {sorted.map((r, i) => (
-                <ResultCard key={r.filename} result={r} defaultOpen={i === 0} stacked={singleReview} />
+                <ResultCard key={r.filename} result={r} defaultOpen={i === 0} />
               ))}
             </section>
           </div>

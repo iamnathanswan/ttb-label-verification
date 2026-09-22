@@ -38,8 +38,9 @@ function Check({ check }) {
   )
 }
 
-export default function ResultCard({ result, defaultOpen, stacked = false }) {
+export default function ResultCard({ result, defaultOpen }) {
   const [open, setOpen] = useState(Boolean(defaultOpen))
+  const [tab, setTab] = useState(null)
 
   // Two different questions, answered differently. Compliance asks whether the
   // label is lawful on its own terms; matching asks whether it agrees with the
@@ -50,6 +51,47 @@ export default function ResultCard({ result, defaultOpen, stacked = false }) {
   const advisory = result.checks.filter((c) => c.advisory)
 
   const count = (list, status) => list.filter((c) => c.status === status).length
+
+  // Three questions, not one list. Which is open by default is decided by the
+  // findings: an agent opening a failed result wants the failure, and hunting for
+  // it behind a tab would be worse than the single scroll this replaced.
+  const sections = [
+    {
+      id: 'matching',
+      title: 'Against the application',
+      checks: matching,
+      note: 'Does the label say what was declared on the COLA application? A disagreement '
+        + 'here is as often corrected on the form as on the label.',
+    },
+    {
+      id: 'compliance',
+      title: 'Against the regulations',
+      checks: compliance,
+      note: 'Is the label lawful on its own terms? Answered from the label and 27 CFR '
+        + 'alone — a label can match its application exactly and still fail here.',
+    },
+    {
+      id: 'advisory',
+      title: 'Requires physical inspection',
+      checks: advisory,
+      note: 'These depend on measurement a photograph cannot supply, so they apply to '
+        + 'every label alike and do not affect the result above.',
+    },
+  ].filter((s) => s.checks.length > 0 || s.id === 'matching')
+
+  const worst = (s) => (count(s.checks, 'FAIL') ? 0 : count(s.checks, 'REVIEW') ? 1 : 2)
+  const defaultTab = [...sections].sort((a, b) => worst(a) - worst(b))[0]?.id
+  const active = tab && sections.some((s) => s.id === tab) ? tab : defaultTab
+
+  const onTabKey = (event) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key]
+    if (!step) return
+    event.preventDefault()
+    const i = sections.findIndex((s) => s.id === active)
+    const next = sections[(i + step + sections.length) % sections.length]
+    setTab(next.id)
+    event.currentTarget.parentElement.querySelector(`[data-tab="${next.id}"]`)?.focus()
+  }
   const parts = []
   if (count(compliance, 'FAIL')) parts.push(`${count(compliance, 'FAIL')} rule${count(compliance, 'FAIL') > 1 ? 's' : ''} failed`)
   if (count(matching, 'FAIL')) parts.push(`${count(matching, 'FAIL')} mismatch${count(matching, 'FAIL') > 1 ? 'es' : ''}`)
@@ -83,54 +125,38 @@ export default function ResultCard({ result, defaultOpen, stacked = false }) {
 
       {open && (
         <div className="card__detail">
-          {/* Side by side: the two questions are read together, and seeing one
-              clear while the other is not is the comparison an agent makes. */}
-          <div className={stacked ? 'columns columns--stacked' : 'columns'}>
-          <section className="group">
-            <h4>
-              Against the application
-              <Count checks={matching} />
-            </h4>
-            <p className="note">
-              Does the label say what was declared on the COLA application? A disagreement
-              here is as often corrected on the form as on the label.
-            </p>
-            <Comparison result={result} />
-            {matching.length > 0 && (
-              <ul className="checks">
-                {matching.map((c, i) => <Check key={`m-${c.id}-${i}`} check={c} />)}
-              </ul>
-            )}
-          </section>
-
-          <section className="group">
-            <h4>
-              Against the regulations
-              <Count checks={compliance} />
-            </h4>
-            <p className="note">
-              Is the label lawful on its own terms? Answered from the label and 27 CFR
-              alone — a label can match its application exactly and still fail here.
-            </p>
-            <ul className="checks">
-              {compliance.map((c, i) => <Check key={`c-${c.id}-${i}`} check={c} />)}
-            </ul>
-          </section>
+          <div className="tabs" role="tablist" aria-label={`Findings for ${result.filename}`}>
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="tab"
+                data-tab={s.id}
+                aria-selected={s.id === active}
+                tabIndex={s.id === active ? 0 : -1}
+                className={`tabs__tab${s.id === active ? ' tabs__tab--on' : ''}`}
+                onClick={() => setTab(s.id)}
+                onKeyDown={onTabKey}
+              >
+                {s.title}
+                <Count checks={s.checks} />
+              </button>
+            ))}
           </div>
 
-          {advisory.length > 0 && (
-            <section className="group">
-              <h4>Requires physical inspection</h4>
-              <p className="note">
-                These depend on measurement a photograph cannot supply, so they apply to
-                every label alike and do not affect the result above.
-              </p>
-              <ul className="checks">
-                {advisory.map((c, i) => <Check key={`adv-${c.id}-${i}`} check={c} />)}
-              </ul>
-            </section>
-          )}
-
+          {sections.map((s) => (
+            s.id === active && (
+              <section className="group" key={s.id} role="tabpanel" tabIndex={-1}>
+                <p className="note">{s.note}</p>
+                {s.id === 'matching' && <Comparison result={result} />}
+                {s.checks.length > 0 && (
+                  <ul className="checks">
+                    {s.checks.map((c, i) => <Check key={`${s.id}-${c.id}-${i}`} check={c} />)}
+                  </ul>
+                )}
+              </section>
+            )
+          ))}
         </div>
       )}
     </article>

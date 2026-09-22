@@ -200,13 +200,6 @@ body:has(.drop--over) { background: #eef4fb; }
   padding: .5rem .75rem; border-bottom: 1px solid var(--line); font-size: .92rem; }
 .drop .queue li:last-child { border-bottom: 0; }
 
-/* --- two columns: application on the left, regulations on the right ------- */
-
-.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; align-items: start; }
-.columns .group { margin-top: 1.25rem; }
-/* A vertical rule makes the split legible without a heavier container. */
-.columns > .group + .group { border-left: 1px solid var(--line); padding-left: 2rem; }
-
 .comparison { margin: 0 0 1rem; }
 .comparison__head { display: flex; align-items: baseline; gap: .6rem;
   flex-wrap: wrap; margin-top: .75rem; }
@@ -249,13 +242,6 @@ body:has(.drop--over) { background: #eef4fb; }
   border-bottom: 1px solid var(--line); font-size: .88rem; font-weight: 600; }
 .documents img { display: block; width: 100%; height: auto; }
 .documents embed { display: block; width: 100%; height: 30rem; border: 0; }
-
-/* Below roughly a tablet the columns stack; a two-column layout at this width
-   leaves neither side enough room for the values being compared. */
-@media (max-width: 58rem) {
-  .columns { grid-template-columns: 1fr; gap: 0; }
-  .columns > .group + .group { border-left: 0; padding-left: 0; }
-}
 
 @media (max-width: 46rem) {
   .zones, .documents { grid-template-columns: 1fr; }
@@ -345,10 +331,6 @@ body:has(.drop--over) { background: #eef4fb; }
 .waiting { border: 1px dashed var(--line); border-radius: 8px; padding: 1.5rem; background: var(--surface); }
 .waiting h2 { margin: 0 0 .4rem; font-size: 1.05rem; }
 .waiting p { margin: 0 0 .4rem; }
-
-/* Beside a document pane there is no room for two columns of findings. */
-.columns--stacked { grid-template-columns: 1fr; gap: 0; }
-.columns--stacked > .group + .group { border-left: 0; padding-left: 0; }
 
 @media (max-width: 70rem) {
   .workspace { grid-template-columns: 1fr; }
@@ -466,3 +448,18 @@ body:has(.drop--over) { background: #eef4fb; }
   padding: .35rem .7rem; font-size: .9rem; cursor: pointer; color: var(--fail);
 }
 .filelist button:disabled { color: var(--muted); cursor: not-allowed; }
+
+/* --- findings, one question at a time --------------------------------------- */
+
+.tabs {
+  display: flex; flex-wrap: wrap; gap: .25rem;
+  border-bottom: 2px solid var(--line); margin-bottom: 1rem;
+}
+.tabs__tab {
+  display: inline-flex; align-items: center; gap: .6rem;
+  background: none; border: 0; border-bottom: 3px solid transparent;
+  margin-bottom: -2px; padding: .7rem 1rem; min-height: 44px;
+  font: inherit; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.tabs__tab:hover { color: var(--ink); }
+.tabs__tab--on { color: var(--ink); border-bottom-color: var(--focus); }
