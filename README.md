@@ -212,9 +212,8 @@ Advisories are shown under their own heading, clearly marked.
 
 ## Technical choices, and why
 
-The brief says it is judging *appropriate technical choices for the scope*, so here is the
-reasoning rather than just the stack. Decisions are tabulated as D1–D9 in `docs/plan.md`;
-this is the prose.
+Every choice below had a plausible alternative. Decisions are tabulated as D1–D9 in
+`docs/plan.md`; this is the reasoning behind them.
 
 ### Python and FastAPI
 
@@ -289,7 +288,7 @@ pilot, half the features failed because the firewall blocked their ML endpoints.
 happened because the vendor's product called out *from inside* TTB's network. This tool
 does not: an agent's browser makes one outbound connection, to this HTTPS URL, and the
 inference call is made by the application host. The firewall governs traffic leaving TTB;
-this traffic leaves a container elsewhere. As a prototype reviewers open in a browser, the
+this traffic leaves a container elsewhere. For a prototype opened in a browser, the
 constraint genuinely does not apply.
 
 **It absolutely applies in production**, and the remedy is not a firewall exception. Asking
@@ -328,10 +327,9 @@ Two further properties make that migration smaller than it sounds:
   no data store to migrate, no retention policy to write, and no PII at rest to assess —
   which removes most of what makes a federal authorisation slow.
 
-**What is honestly not done:** no FedRAMP artifacts, no ATO package, no Azure deployment
-exists. Those were out of scope for a prototype (`docs/requirements.md` §I) and claiming
-otherwise would be the kind of thing that does not survive questioning. What is done is
-making sure the prototype has not foreclosed the path.
+**Not done:** there are no FedRAMP artifacts, no ATO package, and no Azure deployment.
+Those are out of scope for a prototype (`docs/requirements.md` §I). What is done is making
+sure nothing here forecloses the path.
 
 ---
 
@@ -450,8 +448,8 @@ reachable only through `ExtractionProvider`. Worked through in full under
 
 **Physical measurements are advisory, not verified.** Type size, characters per inch,
 compression and background contrast are millimetre judgements. This reports the applicable
-threshold and routes to a person. Claiming to verify type size from a JPEG would not
-survive questioning.
+threshold and routes to a person. A JPEG carries no scale, so verifying type size from one
+is not something the tool can honestly claim.
 
 **Only distilled spirits rules are complete.** Wine and malt beverage labels get the
 warning checks and are otherwise marked unverified.
