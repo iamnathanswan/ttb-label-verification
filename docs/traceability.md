@@ -22,10 +22,10 @@ and the submission itself.
 | EXT-06 | Extract country of origin when present | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
 | EXT-07 | Extract government warning statement verbatim, preserving case | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
 | EXT-08 | Report a per-field confidence signal, so low-confidence reads r… | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
-| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | `app/providers/anthropic_provider.py`<br>`app/rules/engine.py` | `test_ingest.py`<br>`test_models.py` | test |
+| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | `app/providers/anthropic_provider.py`<br>`app/rules/engine.py` | `generate_labels.py`<br>`test_ingest.py`<br>`test_models.py` | test |
 | EXT-10 | Accept common image formats plus PDF | `app/ingest.py` | `test_ingest.py` | test |
 | VAL-01 | Warning text must match §16.21 exactly, word for word, after wh… | `app/providers/anthropic_provider.py`<br>`app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_warning.py` | test |
-| VAL-02 | `GOVERNMENT WARNING` must appear in capital letters | `app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
+| VAL-02 | `GOVERNMENT WARNING` must appear in capital letters | `app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
 | VAL-03 | `GOVERNMENT WARNING` must appear in bold type | `app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_warning.py` | test |
 | VAL-04 | The remainder of the warning may NOT be bold | `app/models.py`<br>`app/rules/observation.py`<br>`app/rules/warning.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
 | VAL-05 | Warning must be separate and apart from all other information | `app/rules/warning.py` | `generate_labels.py`<br>`test_rules_warning.py` | test |
@@ -33,10 +33,10 @@ and the submission itself.
 | VAL-07 | Warning must not be compressed such that it is not readily legible | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/warning.py` | `test_rules_warning.py` | test |
 | VAL-08 | Minimum type size is a function of container volume: ≤237 mL →… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/match.py`<br>`app/rules/units.py`<br>`app/rules/warning.py` | `test_models.py`<br>`test_review_regressions.py`<br>`test_rules_match.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
 | VAL-09 | Max characters per inch by type size: 1 mm → 40; 2 mm → 25; 3 m… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/warning.py` | `test_rules_warning.py` | test |
-| VAL-10 | Brand name, class/type, and alcohol content must appear within… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_rules_fields.py` | test |
+| VAL-10 | Brand name, class/type, and alcohol content must appear within… | `app/rules/engine.py`<br>`app/rules/fields.py` | `test_rules_engine.py`<br>`test_rules_fields.py` | test |
 | VAL-11 | Alcohol content must be expressed as percentage by volume; proo… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
 | VAL-12 | Producer name must be preceded by a function phrase — "bottled… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
-| VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py`<br>`web/src/components/Comparison.jsx` | `generate_applications.py`<br>`generate_labels.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
+| VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py`<br>`web/src/components/Comparison.jsx` | `generate_applications.py`<br>`generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
 | VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `test_review_regressions.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
 | MCH-01 | Compare extracted label values against expected application val… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_match.py` | test |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce… | — | `test_rules_match.py` | test |

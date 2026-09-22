@@ -88,8 +88,8 @@ force design changes.
 
 | # | Task | Satisfies | Done when |
 |---|---|---|---|
-| 5.1 | Generate adversarial corpus + `expected.json` | — | ≥10 labels, each with a documented expected outcome |
-| 5.2 | Corpus cases: compliant · missing warning · title-case heading · fully-bold body · ABV mismatch · ABV within tolerance · `STONE'S THROW` · 50 mL undersized type · glare · off-angle · wine (type-specific skip) | VAL-01..04, MCH-02, MCH-03, VAL-08, EXT-09, J-4 | Every rule fires on at least one fixture |
+| 5.1 | Generate adversarial corpus + `expected.json` | — | ≥10 labels, each with a documented expected outcome (12 built) |
+| 5.2 | Corpus cases: compliant · missing warning · title-case heading · fully-bold body · heading not bold · proof without ABV · producer without function phrase · 50 mL undersized type · imported without country · warning not set apart · off-angle with glare · wine (type-specific gating) | VAL-01..05, VAL-08, VAL-11..13, EXT-09, J-4 | Every rule fires on at least one fixture |
 | 5.3 | Batch load test at 200–300 labels | BAT-02 | Completes; no unbounded memory growth |
 | 5.4 | `/code-review` on the full diff | — | Findings resolved or consciously accepted |
 | 5.5 | `/security-review` — upload handling, key exposure, limits | OPS-04, OPS-05 | Findings resolved |
