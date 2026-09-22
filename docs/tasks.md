@@ -1,6 +1,6 @@
 # Tasks — TTB AI Label Verification Prototype
 
-**Owner:** Nathan Swan · **Start:** 2026-09-16 · **Due:** 2026-09-23
+**Owner:** Nathan Swan · **Start:** 2026-09-16 · **Due:** 2026-09-23 · **Last updated:** 2026-09-22
 
 Every task names the requirements it satisfies. A task is done when its acceptance
 criterion holds **and** `docs/traceability.md` shows a passing test for each listed ID.

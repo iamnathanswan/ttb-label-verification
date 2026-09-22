@@ -1,9 +1,14 @@
 # Technical Plan — TTB AI Label Verification Prototype
 
-**Status:** draft v1 · **Owner:** Nathan Swan · **Date:** 2026-09-16 · **Due:** 2026-09-23
+**Status:** v2 — current, and kept current · **Owner:** Nathan Swan · **Written:** 2026-09-16 · **Last updated:** 2026-09-22
 
-Companion documents: `docs/requirements.md` (58 requirements, IDs referenced throughout),
-`docs/tasks.md` (execution breakdown), `docs/traceability.md` (coverage matrix).
+Companion documents: `docs/requirements.md` (64 requirements, IDs referenced throughout),
+`docs/tasks.md` (execution breakdown), `docs/traceability.md` (coverage matrix),
+`docs/sources.md` (every citation, linked to the regulation).
+
+*Where this plan was overtaken by measurement — the model, and structured outputs — the
+original decision is kept alongside what replaced it and why. Sections 2 to 4 describe the
+system as built.*
 
 ---
 

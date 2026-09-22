@@ -1,6 +1,8 @@
 # Requirements — TTB AI Label Verification Prototype
 
-**Status:** draft v1 · **Owner:** Nathan Swan · **Last updated:** 2026-09-16
+**Status:** v2 — current · **Owner:** Nathan Swan · **Written:** 2026-09-16 · **Last updated:** 2026-09-22
+
+*v2 revises §J-1 and the MCH requirements after the matching layer was rebuilt to extract both documents rather than take application values by hand. The superseded resolution is kept in §J-1 rather than replaced, because why it was wrong is the useful part.*
 
 ## How to read this document
 
