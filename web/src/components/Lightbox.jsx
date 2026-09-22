@@ -30,6 +30,9 @@ const isPdf = (file) =>
 export default function Lightbox({ file, onClose }) {
   const [url, setUrl] = useState(null)
   const [error, setError] = useState(null)
+  // Fit shows the whole document at a glance; actual size is for reading six-point
+  // warning text, and is what the scroll container exists for.
+  const [actualSize, setActualSize] = useState(false)
   const dialogRef = useRef(null)
   const closeRef = useRef(null)
   const openerRef = useRef(null)
@@ -37,6 +40,7 @@ export default function Lightbox({ file, onClose }) {
   useEffect(() => {
     if (!file) return undefined
     setError(null)
+    setActualSize(false)
 
     // An image is inert and is shown straight from the local file. A PDF is not,
     // so it is sanitised server-side first.
@@ -117,13 +121,29 @@ export default function Lightbox({ file, onClose }) {
       >
         <header className="lightbox__bar">
           <span className="lightbox__name" title={file.name}>{file.name}</span>
+          {url && !isPdf(file) && (
+            <button
+              type="button"
+              className="lightbox__zoom"
+              onClick={() => setActualSize((on) => !on)}
+              aria-pressed={actualSize}
+            >
+              {actualSize ? 'Fit to window' : 'Actual size'}
+            </button>
+          )}
           {url && <a href={url} target="_blank" rel="noreferrer">Open in a new tab</a>}
           <button type="button" ref={closeRef} onClick={onClose} className="lightbox__close">
             Close<span className="sr-only"> full size view</span>
           </button>
         </header>
 
-        <div className="lightbox__body">
+        <div
+          className={`lightbox__body${actualSize ? ' lightbox__body--actual' : ''}`}
+          // Focusable so the scroll container can be reached and panned by keyboard;
+          // an overflow region that only responds to a mouse is not operable.
+          tabIndex={actualSize ? 0 : -1}
+          aria-label={actualSize ? `${file.name} at actual size, scrollable` : undefined}
+        >
           {error && <p className="lightbox__fallback" role="alert">{error}</p>}
           {!url && !error && <p className="lightbox__fallback">Preparing {file.name}…</p>}
           {url && (isPdf(file) ? (

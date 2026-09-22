@@ -134,16 +134,14 @@ export default function App() {
                 id="label-files" title="Labels"
                 hint="JPEG, PNG, WebP, TIFF or PDF"
                 accept="image/*,application/pdf"
-                files={labels} onBrowse={addLabels}
-                onRemove={(f) => removeFile('label', f)}
+                onBrowse={addLabels}
                 disabled={busy} dragging={dragging}
               />
               <DropZone
                 id="application-files" title="Applications"
                 hint="COLA applications, TTB F 5100.31 (PDF). Optional."
                 accept="application/pdf"
-                files={applications} onBrowse={addApplications}
-                onRemove={(f) => removeFile('application', f)}
+                onBrowse={addApplications}
                 disabled={busy} dragging={dragging}
               />
             </div>

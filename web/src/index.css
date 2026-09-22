@@ -71,20 +71,6 @@ h4 { font-size: 1rem; margin: 1.5rem 0 .25rem; }
 .drop input:focus-visible + .drop__label strong { outline: 3px solid var(--focus); outline-offset: 3px; }
 .drop__hint { margin: .9rem 0 0; color: var(--muted); font-size: .9rem; }
 
-.queue { margin-top: 1.25rem; }
-.queue h3 { margin: 0 0 .5rem; }
-.queue ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
-.queue li {
-  display: flex; align-items: center; gap: 1rem;
-  padding: .6rem .9rem; border-bottom: 1px solid var(--line);
-}
-.queue li:last-child { border-bottom: 0; }
-.queue__name { flex: 1; overflow-wrap: anywhere; }
-.queue button {
-  background: none; border: 1px solid var(--line); border-radius: 6px;
-  padding: .4rem .75rem; font-size: .9rem; cursor: pointer; color: var(--fail);
-}
-
 .panel { margin: 1.25rem 0; border: 1px solid var(--line); border-radius: 8px; padding: 0 1rem; }
 .panel summary { cursor: pointer; padding: .9rem 0; font-weight: 600; }
 .panel[open] summary { border-bottom: 1px solid var(--line); margin-bottom: .9rem; }
@@ -290,28 +276,7 @@ body:has(.drop--over) { background: #eef4fb; }
 .count--pass { background: var(--pass-bg); color: var(--pass); }
 .count--none { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
 
-/* --- queued document thumbnails -------------------------------------------- */
 
-.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-  gap: .9rem; margin-top: 1.25rem; text-align: left; }
-.thumb { margin: 0; }
-.thumb__frame {
-  position: relative; aspect-ratio: 3 / 4; background: #fff;
-  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-}
-.thumb__frame img { width: 100%; height: 100%; object-fit: contain; }
-.thumb__placeholder { font-size: .85rem; font-weight: 700; color: var(--muted);
-  letter-spacing: .06em; }
-.thumb figcaption {
-  margin: .35rem 0 .2rem; font-size: .8rem; line-height: 1.35;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.thumb__remove {
-  background: none; border: 0; padding: 0; font-size: .8rem;
-  color: var(--fail); cursor: pointer; text-decoration: underline;
-}
-.thumb__remove:disabled { color: var(--muted); cursor: not-allowed; }
 
 /* --- workspace: documents beside findings ---------------------------------- */
 
@@ -394,10 +359,10 @@ body:has(.drop--over) { background: #eef4fb; }
 /* --- enlarging a document --------------------------------------------------- */
 
 /* The preview is a button, so it needs the frame styling it replaced. */
-.pane__frame, .thumb__frame {
+.pane__frame {
   padding: 0; font: inherit; color: inherit; cursor: zoom-in; position: relative; width: 100%;
 }
-.pane__frame:disabled, .thumb__frame:disabled { cursor: default; }
+.pane__frame:disabled { cursor: default; }
 .pane__zoom {
   position: absolute; inset-inline: 0; bottom: 0; padding: .4rem;
   background: rgba(22, 25, 29, .78); color: #fff; font-size: .8rem;
@@ -412,14 +377,14 @@ body:has(.drop--over) { background: #eef4fb; }
 .linkish:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 
 .lightbox {
-  position: fixed; inset: 0; z-index: 100; display: flex; padding: 2rem;
-  background: rgba(22, 25, 29, .72); backdrop-filter: blur(2px);
+  position: fixed; inset: 0; z-index: 100; display: flex;
+  background: var(--ink, #16191d);
 }
+/* Full viewport rather than a floating panel. A window inset from the edges left
+   the application header and upload bar showing around it, competing with the
+   document, and gave a five-page PDF only 630px of height on a 900px screen. */
 .lightbox__panel {
-  margin: auto; width: min(100%, 68rem); max-height: 100%;
-  display: flex; flex-direction: column;
-  background: #fff; border-radius: 10px; overflow: hidden;
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, .3);
+  flex: 1; min-width: 0; display: flex; flex-direction: column; background: #fff;
 }
 .lightbox__bar {
   display: flex; align-items: center; gap: 1rem;
@@ -427,13 +392,28 @@ body:has(.drop--over) { background: #eef4fb; }
 }
 .lightbox__name { flex: 1; font-weight: 600; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; }
-.lightbox__close {
+.lightbox__zoom, .lightbox__close {
   border: 1px solid var(--line); border-radius: 6px; background: #fff;
-  padding: .45rem .9rem; min-height: 40px; font: inherit; cursor: pointer;
+  padding: .45rem .9rem; min-height: 40px; font: inherit; cursor: pointer; white-space: nowrap;
 }
-.lightbox__body { flex: 1; min-height: 0; display: flex; background: #f2f3f5; }
-.lightbox__body img { margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
-.lightbox__body object { flex: 1; width: 100%; min-height: 70vh; border: 0; }
-.lightbox__fallback { margin: auto; padding: 3rem 1rem; text-align: center; color: var(--muted); }
+.lightbox__zoom[aria-pressed="true"] { background: var(--surface); border-color: var(--focus); }
+
+/* minmax(0, 1fr) is doing the real work. An `auto` track grows to whatever it
+   contains, so max-height:100% on the image resolved against a row the image had
+   itself stretched to 1400px — circular, and the constraint silently did nothing.
+   Pinning the track to the container's height makes the percentage resolve and
+   lets the image overflow into the scroll container instead of dragging the row
+   with it. The same bug clipped the bottom of every tall label when this was flex. */
+.lightbox__body {
+  flex: 1; min-height: 0; overflow: auto; background: #f2f3f5; padding: 1rem;
+  display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center;
+}
+.lightbox__body img { max-width: 100%; max-height: 100%; }
+/* Actual size releases the track so the row grows and the container scrolls. */
+.lightbox__body--actual { grid-template: auto / auto; place-items: start center; }
+.lightbox__body--actual img { max-width: none; max-height: none; }
+.lightbox__body:has(object) { padding: 0; }
+.lightbox__body object { width: 100%; height: 100%; min-height: 0; border: 0; }
+.lightbox__fallback { padding: 3rem 1rem; text-align: center; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { .pane__zoom { transition: none; } }
