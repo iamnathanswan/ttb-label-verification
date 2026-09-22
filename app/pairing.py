@@ -48,6 +48,69 @@ def _unpaired(label: str, detail: str) -> Pairing:
     return Pairing(label, None, PairingInfo(rule=PairingRule.UNPAIRED, detail=detail))
 
 
+NO_MATCH = (
+    "No application matched this label. Only the regulations were checked. "
+    "Name the files with a shared serial number to pair them."
+)
+
+
+@dataclass(slots=True)
+class Match:
+    """The outcome of searching for one label's application.
+
+    A `candidate` of None means unpaired. `detail` explains why either way, and
+    when it is set on a failure it says something more useful than NO_MATCH — an
+    ambiguous brand can tell the agent exactly how to resolve it.
+    """
+
+    candidate: Candidate | None = None
+    rule: PairingRule | None = None
+    detail: str = ""
+
+
+def _find_match(label: str, remaining: list[Candidate]) -> Match:
+    """Try each strategy in descending order of trust and stop at the first hit."""
+
+    # 1. The application's serial number appears in the label's filename. COLA
+    #    exports are commonly named by serial, so this is the strongest signal
+    #    available once there is more than one of each.
+    label_serial = serial_from_filename(label)
+    if label_serial:
+        for candidate in remaining:
+            serial = (candidate.fields.serial_number if candidate.fields else "") or ""
+            if serial and serial == label_serial:
+                return Match(candidate, PairingRule.SERIAL_IN_FILENAME, f"Serial {serial} appears in both filenames.")
+
+    # 2. Identical filename stems — 24-001.pdf against 24-001.png.
+    for candidate in remaining:
+        if _stem(label) == _stem(candidate.filename):
+            return Match(candidate, PairingRule.SHARED_FILENAME_STEM, "The files share a name.")
+
+    # 3. Brand name, and only where exactly one application could be meant. Two
+    #    applications sharing a brand is not a pair, it is a question — and the
+    #    answer an agent needs is how to make it unambiguous, not a guess.
+    label_stem = normalise(_stem(label))
+    brand_matches = [
+        c for c in remaining if c.fields and c.fields.brand_name and normalise(c.fields.brand_name) in label_stem
+    ]
+    if len(brand_matches) == 1:
+        found = brand_matches[0]
+        return Match(
+            found,
+            PairingRule.BRAND_NAME,
+            f"The brand “{found.fields.brand_name}” on the application appears in the label's filename.",
+        )
+    if len(brand_matches) > 1:
+        return Match(
+            detail=(
+                f"{len(brand_matches)} applications share this brand, so the correct one "
+                "could not be determined. Name the files with the serial number to pair them."
+            )
+        )
+
+    return Match()
+
+
 def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
     """Match each label to at most one application.
 
@@ -82,70 +145,21 @@ def pair(labels: list[str], applications: list[Candidate]) -> PairingOutcome:
         return outcome
 
     for label in labels:
-        match, rule, detail = None, None, ""
-
-        # 2. The application's serial number appears in the label's filename.
-        label_serial = serial_from_filename(label)
-        if label_serial:
-            for candidate in remaining:
-                serial = (candidate.fields.serial_number if candidate.fields else "") or ""
-                if serial and serial == label_serial:
-                    match, rule = candidate, PairingRule.SERIAL_IN_FILENAME
-                    detail = f"Serial {serial} appears in both filenames."
-                    break
-
-        # 3. Identical filename stems.
-        if match is None:
-            for candidate in remaining:
-                if _stem(label) == _stem(candidate.filename):
-                    match, rule = candidate, PairingRule.SHARED_FILENAME_STEM
-                    detail = "The files share a name."
-                    break
-
-        # 4. Brand name, only where exactly one application could be meant. Two
-        #    applications matching one label is not a pair, it is a question.
-        if match is None:
-            label_stem = normalise(_stem(label))
-            brand_matches = [
-                candidate
-                for candidate in remaining
-                if candidate.fields
-                and candidate.fields.brand_name
-                and normalise(candidate.fields.brand_name) in label_stem
-            ]
-            if len(brand_matches) == 1:
-                match, rule = brand_matches[0], PairingRule.BRAND_NAME
-                detail = f"The brand “{match.fields.brand_name}” on the application appears in the label's filename."
-            elif len(brand_matches) > 1:
-                outcome.pairs.append(
-                    _unpaired(
-                        label,
-                        f"{len(brand_matches)} applications share this brand, so the correct one "
-                        "could not be determined. Name the files with the serial number to pair them.",
-                    )
-                )
-                continue
-
-        if match is None:
-            outcome.pairs.append(
-                _unpaired(
-                    label,
-                    "No application matched this label. Only the regulations were checked. "
-                    "Name the files with a shared serial number to pair them.",
-                )
-            )
+        found = _find_match(label, remaining)
+        if found.candidate is None:
+            outcome.pairs.append(_unpaired(label, found.detail or NO_MATCH))
             continue
 
-        remaining.remove(match)
+        remaining.remove(found.candidate)
         outcome.pairs.append(
             Pairing(
                 label,
-                match,
+                found.candidate,
                 PairingInfo(
-                    rule=rule,
-                    application_filename=match.filename,
-                    serial_number=(match.fields.serial_number if match.fields else None) or None,
-                    detail=detail,
+                    rule=found.rule,
+                    application_filename=found.candidate.filename,
+                    serial_number=(found.candidate.fields.serial_number if found.candidate.fields else None) or None,
+                    detail=found.detail,
                 ),
             )
         )
