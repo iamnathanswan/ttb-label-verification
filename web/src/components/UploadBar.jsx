@@ -25,16 +25,16 @@ export default function UploadBar({
       </div>
 
       <div className="bar__actions">
-        <label className="bar__add">
+        <label className="bar__add" htmlFor="bar-labels">
           Add labels
-          <input type="file" multiple accept="image/*,application/pdf" disabled={busy}
-                 className="sr-only"
+          <input id="bar-labels" type="file" multiple accept="image/*,application/pdf"
+                 disabled={busy} className="sr-only"
                  onChange={(e) => { onAddLabels(Array.from(e.target.files || [])); e.target.value = '' }} />
         </label>
-        <label className="bar__add">
+        <label className="bar__add" htmlFor="bar-applications">
           Add applications
-          <input type="file" multiple accept="application/pdf" disabled={busy}
-                 className="sr-only"
+          <input id="bar-applications" type="file" multiple accept="application/pdf"
+                 disabled={busy} className="sr-only"
                  onChange={(e) => { onAddApplications(Array.from(e.target.files || [])); e.target.value = '' }} />
         </label>
         <button type="button" className="bar__clear" onClick={onClear} disabled={busy}>Clear</button>
