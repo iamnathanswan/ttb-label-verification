@@ -72,7 +72,7 @@ export default function ResultCard({ result, defaultOpen }) {
     },
     {
       id: 'advisory',
-      title: 'Requires physical inspection',
+      title: 'Physical inspection',
       checks: advisory,
       note: 'These depend on measurement a photograph cannot supply, so they apply to '
         + 'every label alike and do not affect the result above.',

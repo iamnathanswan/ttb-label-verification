@@ -451,14 +451,16 @@ body:has(.drop--over) { background: #eef4fb; }
 
 /* --- findings, one question at a time --------------------------------------- */
 
+/* Scrolls rather than wraps. A wrapped row sits below the container's rule, which
+   leaves the underline pointing at nothing and the rows looking unrelated. */
 .tabs {
-  display: flex; flex-wrap: wrap; gap: .25rem;
+  display: flex; gap: .25rem; overflow-x: auto;
   border-bottom: 2px solid var(--line); margin-bottom: 1rem;
 }
 .tabs__tab {
-  display: inline-flex; align-items: center; gap: .6rem;
+  display: inline-flex; align-items: center; gap: .6rem; flex: none;
   background: none; border: 0; border-bottom: 3px solid transparent;
-  margin-bottom: -2px; padding: .7rem 1rem; min-height: 44px;
+  padding: .7rem 1rem; min-height: 44px; white-space: nowrap;
   font: inherit; font-weight: 600; color: var(--muted); cursor: pointer;
 }
 .tabs__tab:hover { color: var(--ink); }
