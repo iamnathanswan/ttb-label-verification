@@ -25,6 +25,30 @@ PRF-02 asks for. Per-label latency spreads slightly under load — one label of 
 5,000 ms — so the budget holds at p95 rather than absolutely. A 9,337 ms outlier was
 observed once on a cold container and did not reproduce.
 
+### At the advertised peak
+
+Sarah describes importers who "dump 200, 300 label applications on us at once" (BAT-02).
+`tests/test_load.py` exercises 300 against `StubProvider` — concurrency ceiling, per-label
+isolation, memory, no task leaks — which proves the machinery but not the throughput,
+because the stub returns instantly. So the full batch was also run for real, against the
+deployed service, by `scripts/batch_load.py`:
+
+| Labels | Results | Errors | First result | Wall clock | Throughput |
+|---|---|---|---|---|---|
+| 50 | 50 | 0 | 4,294 ms | 27.2 s | 1.84 /s |
+| **300** | **300** | **0** | **4,896 ms** | **146.9 s** (2.4 min) | **2.04 /s** |
+
+Nothing was dropped at either size, and the first result landed inside the 5,000 ms budget
+in both — which is the number that matters, because the interface streams. An agent starts
+reading result one while label three hundred is still queued; they never wait 2.4 minutes
+to see anything.
+
+Throughput *rose* slightly from 50 to 300 as the container warmed. The steady-state gap
+between completions was 208 ms, consistent with eight concurrent extractions at ~4.2 s
+each. Raising `extraction_concurrency` above 8 would shorten the tail, at the cost of
+per-label latency and provider rate limits; 8 was chosen so the *first* result stays
+inside budget, which PRF-02 asks for and a total does not.
+
 ### With an application paired
 
 Wall time from a client, deployed service, including upload and transit:

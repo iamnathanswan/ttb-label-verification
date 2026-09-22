@@ -436,3 +436,33 @@ body:has(.drop--over) { background: #eef4fb; }
 .dropover__hint { margin: .6rem 0 0; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { .dropover { backdrop-filter: none; } }
+
+/* --- a queue too long to list inline ---------------------------------------- */
+
+.bar__summary {
+  display: inline-flex; align-items: center; gap: .75rem;
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: .4rem .9rem; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.bar__summary-toggle { font-weight: 400; color: var(--focus); text-decoration: underline; }
+
+/* Bounded and scrolling: the queue must never displace the actions again. */
+.filelist {
+  flex-basis: 100%; margin: .75rem 0 0; padding: .25rem; list-style: none;
+  max-height: 40vh; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff;
+}
+.filelist li {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .45rem .7rem; border-bottom: 1px solid var(--line);
+}
+.filelist li:last-child { border-bottom: 0; }
+.filelist__name { flex: 1; overflow-wrap: anywhere; }
+.filelist__dot { width: .55rem; height: .55rem; border-radius: 50%; flex: none; }
+.filelist__dot--label { background: var(--focus); }
+.filelist__dot--application { background: var(--muted); }
+.filelist button {
+  background: none; border: 1px solid var(--line); border-radius: 6px;
+  padding: .35rem .7rem; font-size: .9rem; cursor: pointer; color: var(--fail);
+}
+.filelist button:disabled { color: var(--muted); cursor: not-allowed; }

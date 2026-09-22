@@ -62,7 +62,7 @@ Changing any of these means changing `docs/requirements.md` first.
 
 | Constraint | ID | Note |
 |---|---|---|
-| ≈5 s per label | `PRF-01` | Binding. Measure; never assume. Batch streams — the first result lands inside the budget. |
+| ≈5 s per label | `PRF-01` | Binding. Measure; never assume. Batch streams — the first result lands inside the budget. Measured at 300: first result 4,896 ms, all 300 in 146.9 s (`scripts/batch_load.py`, spends credit, needs `--yes`). |
 | Three states | `MCH-04` | See above. |
 | Stateless | `OPS-01` | Nothing reaches disk or a database. Uploads live in memory for the request. |
 | Section 508 / WCAG 2.1 AA | `UX-04..06` | Status by icon **and** word, never colour alone. Fully keyboard operable. |
@@ -193,6 +193,8 @@ cd web && npm run dev                    # frontend only, hot reload
 pytest -q                                # rules + API, no network
 python3 docs/check_coverage.py           # spec cross-reference; must exit 0
 python scripts/benchmark.py 12           # PRF-01 latency; rewrites docs/perf.md figures
+python scripts/batch_load.py \
+  --url $DEPLOYED --count 300 --yes      # real batch throughput; spends API credit
 python scripts/verify_corpus.py \
   --url $DEPLOYED --markdown docs/verification.md   # regenerate the evidence
 python scripts/gen_traceability.py       # rebuild the coverage matrix
