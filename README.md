@@ -206,6 +206,47 @@ Advisories are shown under their own heading, clearly marked.
 
 ---
 
+## How this was built
+
+Specification first, and deliberately: the brief's requirements are spread across four
+interview transcripts, and the things most easily missed — that the warning body may *not*
+be bold, that a vendor taking 30–40 seconds per label is the benchmark "about 5 seconds" is
+measured against — are said once, in passing, by one person.
+
+So every requirement was extracted to `docs/requirements.md` with a stable ID and, where it
+is binding, the sentence it came from. `docs/plan.md` records the architecture and the
+decisions; `docs/tasks.md` breaks it into phases with each task naming the requirements it
+satisfies; `docs/traceability.md` is generated and cross-checks that every buildable
+requirement has a covering test. `python3 docs/check_coverage.py` fails the build if an ID
+is referenced but never defined, or defined but never covered.
+
+The value of that machinery was not planning. It was that **five ambiguities in the brief
+became visible as ambiguities** rather than as assumptions someone made silently. They are
+recorded in `requirements.md` §J with how each was resolved.
+
+### The design was wrong once, and the specification is where that is recorded
+
+§J-1 asks whether this is label-only verification or label-versus-application matching. The
+explicit requirements list label fields only; the interviews describe something else
+entirely. It was first resolved as *build both, with matching optional* — and the matching
+half took the application values by hand, typed into a panel or uploaded as a CSV.
+
+That satisfied the letter of both readings and defeated the point of one. Sarah's
+description of the job is agents *"drowning"* in **data entry verification**; a tool that
+asks an agent to type the application values is asking for exactly the work it exists to
+remove. The application is also a filled PDF form, not a spreadsheet — the CSV had been
+designed for an artifact that does not exist.
+
+So it was rebuilt. Both documents are now dropped in and both are extracted: the
+application straight from the AcroForm widgets of TTB F 5100.31, with no model involved,
+falling back to vision only for a form that was printed and scanned.
+
+The commit history shows this happening rather than hiding it, and §J-1 records the first
+resolution and why it was wrong alongside the one that replaced it. Superseded tasks and
+decisions are struck through in `tasks.md` and `plan.md` rather than deleted. A
+specification that only ever agreed with the finished system would be a description written
+afterwards, not a record of the work.
+
 ## Measured
 
 | | |
