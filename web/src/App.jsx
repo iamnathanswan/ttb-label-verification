@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DocumentPane from './components/DocumentPane.jsx'
 import DropZone from './components/DropZone.jsx'
+import DropOverlay from './components/DropOverlay.jsx'
 import ResultCard from './components/ResultCard.jsx'
 import UploadBar from './components/UploadBar.jsx'
 import { downscale } from './lib/downscale.js'
@@ -154,6 +155,10 @@ export default function App() {
             busy={busy} dragging={dragging}
           />
         )}
+
+        {/* The zones already highlight themselves, so the overlay is for the
+            workspace, where nothing else says a drop would land. */}
+        <DropOverlay visible={dragging && mode === 'workspace'} />
 
         {fatal && <p className="error" role="alert">{fatal}</p>}
 

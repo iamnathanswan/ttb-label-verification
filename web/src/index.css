@@ -417,3 +417,22 @@ body:has(.drop--over) { background: #eef4fb; }
 .lightbox__fallback { padding: 3rem 1rem; text-align: center; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { .pane__zoom { transition: none; } }
+
+/* --- dropping onto the workspace -------------------------------------------- */
+
+.dropover {
+  position: fixed; inset: 0; z-index: 90; display: flex; padding: 2rem;
+  /* Must not intercept the drag: an element under the cursor fires its own
+     dragenter/dragleave and the highlight flickers. */
+  pointer-events: none;
+  background: rgba(22, 25, 29, .55); backdrop-filter: blur(1px);
+}
+.dropover__card {
+  margin: auto; padding: 2.5rem 3rem; text-align: center;
+  background: #fff; border-radius: 12px; border: 3px dashed var(--focus);
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, .25);
+}
+.dropover__title { margin: 0; font-size: 1.6rem; font-weight: 700; }
+.dropover__hint { margin: .6rem 0 0; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { .dropover { backdrop-filter: none; } }
