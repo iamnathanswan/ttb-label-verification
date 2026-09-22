@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Lightbox from './Lightbox.jsx'
 import { previewKey } from '../lib/usePreviews.js'
 
 /**
@@ -18,6 +19,7 @@ export default function DocumentPane({ label, application, previews }) {
   ].filter(Boolean)
 
   const [active, setActive] = useState('label')
+  const [expanded, setExpanded] = useState(null)
   const current = tabs.find((t) => t.id === active) || tabs[0]
   if (!current) return null
 
@@ -42,20 +44,34 @@ export default function DocumentPane({ label, application, previews }) {
         </div>
       )}
 
-      <div className="pane__frame">
+      {/* The preview is a button: clicking the document to enlarge it is what
+          anyone tries first, so the affordance sits on the document itself. */}
+      <button
+        type="button"
+        className="pane__frame"
+        onClick={() => setExpanded(current.file)}
+        disabled={!preview?.url}
+        aria-label={`Enlarge ${current.file.name}`}
+      >
         {preview?.url ? (
-          <img src={preview.url} alt={`${current.title}: ${current.file.name}`} />
+          <>
+            <img src={preview.url} alt={`${current.title}: ${current.file.name}`} />
+            <span className="pane__zoom" aria-hidden="true">Click to enlarge</span>
+          </>
         ) : (
-          <p className="pane__loading">Rendering {current.file.name}…</p>
+          <span className="pane__loading">Rendering {current.file.name}…</span>
         )}
-      </div>
+      </button>
 
       <p className="pane__caption">
         <span title={current.file.name}>{current.file.name}</span>
-        {preview?.url && (
-          <a href={preview.url} target="_blank" rel="noreferrer">Open full size</a>
-        )}
+        <button type="button" className="linkish" onClick={() => setExpanded(current.file)}
+                disabled={!preview?.url}>
+          Enlarge
+        </button>
       </p>
+
+      <Lightbox file={expanded} onClose={() => setExpanded(null)} />
     </aside>
   )
 }

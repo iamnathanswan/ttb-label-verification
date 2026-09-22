@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Lightbox from './Lightbox.jsx'
 import { makePreview } from '../lib/preview.js'
 
 /**
@@ -8,7 +9,7 @@ import { makePreview } from '../lib/preview.js'
  * finding out after a check has run is too late. Beyond a handful of files
  * thumbnails stop helping, so a large batch falls back to a plain list.
  */
-function Thumbnail({ file, onRemove, disabled }) {
+function Thumbnail({ file, onRemove, onExpand, disabled }) {
   const [preview, setPreview] = useState({ url: null, kind: null })
 
   useEffect(() => {
@@ -30,7 +31,13 @@ function Thumbnail({ file, onRemove, disabled }) {
 
   return (
     <figure className="thumb">
-      <div className="thumb__frame">
+      <button
+        type="button"
+        className="thumb__frame"
+        onClick={() => onExpand(file)}
+        disabled={!preview.url}
+        aria-label={`Enlarge ${file.name}`}
+      >
         {preview.url ? (
           <img src={preview.url} alt={`First page of ${file.name}`} />
         ) : (
@@ -38,7 +45,7 @@ function Thumbnail({ file, onRemove, disabled }) {
             {preview.kind === 'pdf' ? 'PDF' : '…'}
           </span>
         )}
-      </div>
+      </button>
       <figcaption title={file.name}>{file.name}</figcaption>
       <button type="button" className="thumb__remove" onClick={() => onRemove(file)} disabled={disabled}>
         Remove<span className="sr-only"> {file.name}</span>
@@ -50,6 +57,7 @@ function Thumbnail({ file, onRemove, disabled }) {
 export default function DropZone({
   id, title, hint, files, onBrowse, onRemove, disabled, dragging, accept, previewLimit = 6,
 }) {
+  const [expanded, setExpanded] = useState(null)
   const showThumbnails = files.length > 0 && files.length <= previewLimit
 
   return (
@@ -78,7 +86,8 @@ export default function DropZone({
       {showThumbnails && (
         <div className="thumbs">
           {files.map((f) => (
-            <Thumbnail key={`${f.name}-${f.size}`} file={f} onRemove={onRemove} disabled={disabled} />
+            <Thumbnail key={`${f.name}-${f.size}`} file={f} onRemove={onRemove}
+                       onExpand={setExpanded} disabled={disabled} />
           ))}
         </div>
       )}
@@ -98,6 +107,8 @@ export default function DropZone({
           </ul>
         </>
       )}
+
+      <Lightbox file={expanded} onClose={() => setExpanded(null)} />
     </div>
   )
 }

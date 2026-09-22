@@ -390,3 +390,50 @@ body:has(.drop--over) { background: #eef4fb; }
   .pane { position: static; max-width: 34rem; }
   .pane__frame { max-height: 30rem; }
 }
+
+/* --- enlarging a document --------------------------------------------------- */
+
+/* The preview is a button, so it needs the frame styling it replaced. */
+.pane__frame, .thumb__frame {
+  padding: 0; font: inherit; color: inherit; cursor: zoom-in; position: relative; width: 100%;
+}
+.pane__frame:disabled, .thumb__frame:disabled { cursor: default; }
+.pane__zoom {
+  position: absolute; inset-inline: 0; bottom: 0; padding: .4rem;
+  background: rgba(22, 25, 29, .78); color: #fff; font-size: .8rem;
+  opacity: 0; transition: opacity .12s;
+}
+.pane__frame:hover .pane__zoom, .pane__frame:focus-visible .pane__zoom { opacity: 1; }
+
+.linkish {
+  background: none; border: 0; padding: 0; font: inherit; font-size: .85rem;
+  color: var(--focus); text-decoration: underline; cursor: pointer;
+}
+.linkish:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 50; display: flex; padding: 2rem;
+  background: rgba(22, 25, 29, .72); backdrop-filter: blur(2px);
+}
+.lightbox__panel {
+  margin: auto; width: min(100%, 68rem); max-height: 100%;
+  display: flex; flex-direction: column;
+  background: #fff; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, .3);
+}
+.lightbox__bar {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .65rem 1rem; border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.lightbox__name { flex: 1; font-weight: 600; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.lightbox__close {
+  border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  padding: .45rem .9rem; min-height: 40px; font: inherit; cursor: pointer;
+}
+.lightbox__body { flex: 1; min-height: 0; display: flex; background: #f2f3f5; }
+.lightbox__body img { margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+.lightbox__body object { flex: 1; width: 100%; min-height: 70vh; border: 0; }
+.lightbox__fallback { margin: auto; padding: 3rem 1rem; text-align: center; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { .pane__zoom { transition: none; } }
