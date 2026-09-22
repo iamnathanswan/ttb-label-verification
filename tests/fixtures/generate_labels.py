@@ -10,10 +10,11 @@ of how they were made.
 Run: python3 tests/fixtures/generate_labels.py
 """
 
+import io
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT = Path(__file__).parent / "labels"
 
@@ -86,6 +87,33 @@ def draw_warning(d, y, *, heading: str, head_font: str, body_font: str, box: boo
     return wrap(d, pad, y + 30, rest.strip(), bf, W - 2 * pad, leading=5)
 
 
+def degrade(img: Image.Image) -> Image.Image:
+    """Make a clean render look like a label photographed off a shelf (EXT-09).
+
+    Jenny asked for this directly: "labels that are photographed at weird angles,
+    or the lighting is bad, or there's glare on the bottle." A corpus of clean
+    renders cannot show whether that works, so one fixture is deliberately spoiled
+    with all three at once — rotation, a lighting gradient, a specular highlight
+    and enough blur and JPEG noise to be realistic.
+    """
+    img = img.rotate(-7, resample=Image.BICUBIC, expand=True, fillcolor=(38, 36, 34))
+
+    # Lighting falls off across the bottle rather than lying flat.
+    w, h = img.size
+    gradient = Image.linear_gradient("L").resize((w, h)).rotate(28, resample=Image.BICUBIC)
+    img = Image.composite(img, Image.new("RGB", (w, h), (24, 22, 20)), gradient.point(lambda v: 90 + v // 2))
+
+    # Specular glare: a blown-out band where the light source reflects.
+    glare = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(glare).ellipse([int(w * 0.30), int(-h * 0.10), int(w * 1.15), int(h * 0.42)], fill=190)
+    img = Image.composite(Image.new("RGB", (w, h), "white"), img, glare.filter(ImageFilter.GaussianBlur(70)))
+
+    img = img.filter(ImageFilter.GaussianBlur(1.1))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=38)  # a phone photo, not a press asset
+    return Image.open(io.BytesIO(buf.getvalue())).convert("RGB")
+
+
 def build(
     name: str,
     *,
@@ -102,6 +130,7 @@ def build(
     gap=46,
     embed=False,
     country=None,
+    spoil=False,
 ) -> None:
     img = Image.new("RGB", (W, H), CREAM)
     d = ImageDraw.Draw(img)
@@ -129,6 +158,8 @@ def build(
     elif warning:
         draw_warning(d, y + gap, heading=heading, head_font=head_font, body_font=body_font, box=box)
 
+    if spoil:
+        img = degrade(img)
     img.save(OUT / f"{name}.png")
 
 
@@ -195,6 +226,34 @@ CASES = {
             "note": "Imported product with no country of origin. §5.69.",
             "expect_overall": "FAIL",
             "expect_fail": ["VAL-13"],
+        },
+    ),
+    "photographed_off_angle": (
+        {"spoil": True},
+        {
+            "note": "The same compliant label, rotated 7 degrees, unevenly lit, with specular glare "
+            "across the upper third and JPEG noise — Jenny's 'photographed at weird angles, or the "
+            "lighting is bad, or there's glare on the bottle'. Nothing about it is non-compliant, so "
+            "the expected result is PASS: the test is whether a degraded capture still reads. "
+            "Tesseract loses brand, class/type, ABV and net contents on this image and garbles the "
+            "warning into 'rink ay beverages uring', which would fail a compliant label (EXT-09).",
+            "expect_overall": "PASS",
+        },
+    ),
+    "wine_commodity_gated": (
+        {
+            "brand": "SALT RIVER CELLARS",
+            "class_type": "Napa Valley Cabernet Sauvignon",
+            "abv_text": "13.5% Alc./Vol.",
+            "net": "750 mL",
+            "producer": "VINTED AND BOTTLED BY SALT RIVER CELLARS, ST. HELENA, CALIFORNIA",
+        },
+        {
+            "note": "A wine label. Part 16 is universal so the warning checks run and must pass; the "
+            "Part 5 distilled-spirits rules must report as unverified rather than failing, because "
+            "hard-failing a wine label against a spirits citation is the confidently-wrong outcome "
+            "(requirements §J-4).",
+            "expect_overall": "REVIEW",
         },
     ),
     "warning_not_separated": (

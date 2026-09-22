@@ -81,6 +81,25 @@ def test_wine_label_is_not_failed_against_spirits_rules():
     assert all("Part 5" in c.detail for c in softened)
 
 
+def test_wine_label_is_not_passed_against_spirits_rules_either():
+    """A compliant-looking wine label must not collect PASSes under Part 5.
+
+    The failing path was covered from the start; this one was not, and the wine
+    corpus fixture found it. Every Part 5 check returned a confident PASS citing
+    §5.63, §5.65, §5.66, §5.69 and §5.64 against a Cabernet none of them govern.
+    """
+    wine = compliant(beverage_type="wine")
+    result = verify(wine)
+    part_5 = [c for c in result.checks if c.id in {"VAL-10", "VAL-11", "VAL-12", "VAL-13"}]
+    assert part_5, "expected the Part 5 checks to run"
+    assert all(c.status is Status.REVIEW for c in part_5), [
+        (c.id, c.status) for c in part_5 if c.status is not Status.REVIEW
+    ]
+    # Part 16 is universal and must still be decided, not softened.
+    assert all(c.status is Status.PASS for c in result.checks if c.id in {"VAL-01", "VAL-02"})
+    assert result.overall is Status.REVIEW
+
+
 def test_warning_rules_still_apply_to_wine():
     """Part 16 is universal — a wine label with no warning still fails."""
     wine = compliant(beverage_type="wine", warning_text="")

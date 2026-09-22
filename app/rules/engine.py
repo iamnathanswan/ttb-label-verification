@@ -44,13 +44,20 @@ def _illegible(fields: LabelFields) -> CheckResult:
 
 
 def _soften_type_specific(check: CheckResult, beverage_type: str) -> CheckResult:
-    """Report an unimplemented commodity's rules as unverified rather than failed.
+    """Report an unimplemented commodity's rules as unverified, whatever they said.
 
     Failing a wine label against distilled spirits rules would be confidently
-    wrong, which is worse than declining to judge.
+    wrong, which is worse than declining to judge. So would passing it: §J-4
+    resolves to flag type-specific fields as *unverified*, and a PASS is an
+    assessment, not an abstention.
+
+    The citations are the reason this matters. Wine alcohol content is governed by
+    §4.36, not §5.65, and the two differ — a wine below 14% may carry a type
+    designation in place of a percentage. Reporting "PASS — 27 CFR 5.65" on a
+    Cabernet is a verdict under a regulation that does not govern the product, and
+    a tool whose whole claim is that every finding is explainable by citation
+    cannot cite the wrong one and call it a pass.
     """
-    if check.status is Status.PASS:
-        return check
     return check.model_copy(
         update={
             "status": Status.REVIEW,

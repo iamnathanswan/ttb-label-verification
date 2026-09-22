@@ -56,6 +56,14 @@
       "VAL-13"
     ]
   },
+  "photographed_off_angle.png": {
+    "note": "The same compliant label, rotated 7 degrees, unevenly lit, with specular glare across the upper third and JPEG noise \u2014 Jenny's 'photographed at weird angles, or the lighting is bad, or there's glare on the bottle'. Nothing about it is non-compliant, so the expected result is PASS: the test is whether a degraded capture still reads. Tesseract loses brand, class/type, ABV and net contents on this image and garbles the warning into 'rink ay beverages uring', which would fail a compliant label (EXT-09).",
+    "expect_overall": "PASS"
+  },
+  "wine_commodity_gated.png": {
+    "note": "A wine label. Part 16 is universal so the warning checks run and must pass; the Part 5 distilled-spirits rules must report as unverified rather than failing, because hard-failing a wine label against a spirits citation is the confidently-wrong outcome (requirements \u00a7J-4).",
+    "expect_overall": "REVIEW"
+  },
   "warning_not_separated.png": {
     "note": "Warning set as one more paragraph of body copy, same face and size as the marketing text around it; \u00a716.21 requires it be separate and apart.",
     "expect_overall": "FAIL",
