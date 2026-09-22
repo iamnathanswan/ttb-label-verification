@@ -20,6 +20,19 @@ came from ttb.gov. Labels are synthetic, each built with one deliberate defect.
 | `08-warning-title-case` | The warning heading reads “Government Warning:” instead of capitals. | FAILED |
 | `09-label-only` | No application at all. | PASS |
 
+## Testing the matching, not just the comparison
+
+`10-mixed-batch` is different: six labels and seven applications in one folder.
+Drop the whole thing at once and every label should find its own application —
+the panel on each result names which one it paired to and by which rule.
+
+It is there because one label and one application prove nothing about matching:
+with a single pair there is only one answer available, and the tool takes it
+without ever reading a filename. Six of each is where matching has to be right.
+
+The seventh application, `24-0423-application-orphan.pdf`, has no label. It must
+be reported as unmatched rather than attached to whichever label was left over.
+
 ## Making your own
 
 `tests/fixtures/generate_labels.py` draws labels and

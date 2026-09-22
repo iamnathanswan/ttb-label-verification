@@ -8,6 +8,7 @@ should do, so the tool can be exercised without reading any code.
 Run: python scripts/make_samples.py
 """
 
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -86,6 +87,40 @@ PAIRS = [
 ]
 
 
+def write_batch_folder() -> None:
+    """One folder holding a whole batch, so matching can be tried in the interface.
+
+    Labels are named by the serial of the application they belong to, which is how
+    a COLA export arrives and the signal pairing trusts most.
+    """
+    target = OUT / "10-mixed-batch"
+    target.mkdir()
+
+    manifest = json.loads((APPS / "expected.json").read_text())
+    for application, meta in manifest.items():
+        shutil.copy(APPS / application, target / application)
+        label = meta.get("pairs_with")
+        if label:
+            serial = application.split("-application")[0]
+            shutil.copy(LABELS / label, target / f"{serial}_label.png")
+
+    (target / "README.md").write_text(
+        "# 10-mixed-batch\n\n"
+        "Six labels and seven applications. Drop the whole folder at once.\n\n"
+        "Every label should pair to the application whose serial it is named after, and\n"
+        "`24-0423-application-orphan.pdf` should be reported as having no label rather\n"
+        "than being attached to one.\n\n"
+        "| Label | Should pair to |\n|---|---|\n"
+        + "".join(
+            f"| `{a.split('-application')[0]}_label.png` | `{a}` |\n"
+            for a, m in manifest.items()
+            if m.get("pairs_with")
+        )
+        + "\nThe same label image is used throughout: what is being tested is which\n"
+        "application each one is matched to, not what is printed on it.\n"
+    )
+
+
 def main() -> int:
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -118,6 +153,8 @@ def main() -> int:
         "09": "PASS",
     }
 
+    write_batch_folder()
+
     for folder, label, application, note in PAIRS:
         target = OUT / folder
         target.mkdir()
@@ -128,6 +165,19 @@ def main() -> int:
         lines.append(f"| `{folder}` | {note.split('.')[0]}. | {expectations[folder[:2]]} |")
 
     lines += [
+        "",
+        "## Testing the matching, not just the comparison",
+        "",
+        "`10-mixed-batch` is different: six labels and seven applications in one folder.",
+        "Drop the whole thing at once and every label should find its own application —",
+        "the panel on each result names which one it paired to and by which rule.",
+        "",
+        "It is there because one label and one application prove nothing about matching:",
+        "with a single pair there is only one answer available, and the tool takes it",
+        "without ever reading a filename. Six of each is where matching has to be right.",
+        "",
+        "The seventh application, `24-0423-application-orphan.pdf`, has no label. It must",
+        "be reported as unmatched rather than attached to whichever label was left over.",
         "",
         "## Making your own",
         "",
