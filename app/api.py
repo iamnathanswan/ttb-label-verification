@@ -23,6 +23,7 @@ from app.limits import enforce
 from app.models import ApplicationFields, VerificationResult
 from app.pairing import Candidate, pair
 from app.providers.base import ExtractionError, ExtractionProvider
+from app.sanitize import strip_active_content
 
 router = APIRouter(prefix="/api")
 
@@ -197,6 +198,48 @@ async def verify_batch(
         stream_batch(request.app.state.provider, uploads, rejected=rejected),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/document")
+async def document(
+    request: Request,
+    file: Annotated[UploadFile, File(description="PDF to display at full size")],
+) -> Response:
+    """Return a PDF with its executable content removed, for display (OPS-07).
+
+    The enlarged view hands the document to the browser's own PDF viewer, which
+    buys zoom, page navigation and text selection for no code. It also runs any
+    JavaScript the document carries, which is not something to do with a file an
+    applicant supplied.
+
+    TTB F 5100.31 is the case that surfaced this: the official form fires an alert
+    about LEGAL paper on open, which is startling above a tool that never mentioned
+    printing. The alert was the symptom worth noticing, not the problem.
+
+    Outside the extraction rate limit, on the same reasoning as /preview: looking at
+    a document costs no inference and must not consume the budget for checking it.
+    """
+    try:
+        content = await _read(file)
+    except UploadTooLarge as exc:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
+
+    try:
+        clean = await asyncio.to_thread(strip_active_content, content)
+    except UnsupportedUpload as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return Response(
+        content=clean,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "no-store",
+            # Belt and braces: the viewer must not treat this as a document of our
+            # own origin, and must not re-sniff it into something scriptable.
+            "Content-Security-Policy": "sandbox; default-src 'none'",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

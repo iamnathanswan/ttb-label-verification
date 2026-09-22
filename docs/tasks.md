@@ -67,6 +67,7 @@ force design changes.
 | 3.4 | Per-label isolation — one failure emits `error` and the batch continues | BAT-04 | Corrupt file mid-batch does not abort |
 | 3.5 | CSV expected-values mapping for batches | MCH-01, BAT-05 | CSV columns map to `ExpectedValues` |
 | 3.6 | Rate limiting, request size cap, per-batch file ceiling | OPS-05 | Limits enforced and tested |
+| 3.8 | Strip JavaScript, attachments and link actions from a PDF before the browser displays it | OPS-07 | Form values survive; no script body remains |
 | 3.7 | Confirm nothing persists to disk or database | OPS-01 | No writes outside `/tmp` during a request |
 
 ## Phase 4 — Interface (day 5)

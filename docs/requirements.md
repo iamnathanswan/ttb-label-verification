@@ -124,6 +124,7 @@ rather than hidden.
 | OPS-04 | No secrets in client code or repository | Standard practice; federal deliverable | Derived |
 | OPS-05 | Rate limiting and upload size caps on the public URL | Public endpoint with a funded API key behind it | Assumption |
 | OPS-06 | Standalone — no COLA integration | Marcus: *"we're not looking to integrate with COLA directly"* | Binding |
+| OPS-07 | Uploaded documents are stripped of executable content before display | A PDF can carry JavaScript that every mainstream viewer runs on open; TTB F 5100.31 itself does | Derived |
 
 ## H. Deliverables
 

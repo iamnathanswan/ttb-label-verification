@@ -204,6 +204,7 @@ disk or database — uploads live in memory for the duration of the request (`OP
 | Deployment surprises late in the week | Deploy a stub on day 1, before any feature work |
 | Extraction quality on poor images (`EXT-09`) | Adversarial corpus with glare/angle cases; `image_legible` routes to `UX-08` rather than guessing |
 | Public endpoint abuse | Rate limit, size caps, file-count ceiling (`OPS-05`) |
+| Script in an uploaded PDF runs in the reviewer's browser | Scrubbed server-side before display; served sandboxed (`OPS-07`) |
 | Scope creep | `requirements.md` §I is fixed; stretch items only after `docs/traceability.md` is green |
 
 ## 11. Out of scope

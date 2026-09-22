@@ -98,6 +98,14 @@ TTB F 5100.31 and is read from its AcroForm widgets — exactly, with no model �
 back to vision only for a form that was printed and scanned. Asking an agent to type
 application values reintroduces the data entry the tool exists to remove (§J-1).
 
+**A PDF is executable, and the TTB form proves it.** TTB F 5100.31 carries a
+document-level script that fires `app.alert("Please set page size to LEGAL...")` on
+open, and every mainstream PDF viewer runs it. Anything handed to a browser viewer
+goes through `app/sanitize.py` first (`OPS-07`). Note that the script lives in a
+compressed stream: searching the raw bytes for `app.alert` returns False even for
+the untouched original, so assert against decompressed objects or the test proves
+nothing.
+
 **The serial number cannot pair by content.** It identifies an application (field 4) but
 is never printed on a label, so pairing works from filenames and, failing that, an
 unambiguous brand. Two candidates is a question, not a pair — `app/pairing.py` reports

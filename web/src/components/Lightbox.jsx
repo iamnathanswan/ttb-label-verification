@@ -12,21 +12,50 @@ const isPdf = (file) =>
  * at full resolution, and a PDF in the browser's own viewer, which brings zoom,
  * page navigation and text selection for free.
  *
+ * A PDF goes through the server first. Browser PDF viewers execute whatever
+ * JavaScript a document carries, and these documents come from applicants. The
+ * official TTB form is itself an example — it fires an alert about LEGAL paper on
+ * open — so the bytes are scrubbed before the viewer ever sees them (OPS-07).
+ *
  * Modal behaviour is hand-rolled rather than borrowed: Escape closes, focus moves
  * in and returns to whatever opened it, and Tab is kept inside while it is open.
  */
 export default function Lightbox({ file, onClose }) {
   const [url, setUrl] = useState(null)
+  const [error, setError] = useState(null)
   const dialogRef = useRef(null)
   const closeRef = useRef(null)
   const openerRef = useRef(null)
 
   useEffect(() => {
     if (!file) return undefined
-    const objectUrl = URL.createObjectURL(file)
-    setUrl(objectUrl)
+    setError(null)
+
+    // An image is inert and is shown straight from the local file. A PDF is not,
+    // so it is sanitised server-side first.
+    if (!isPdf(file)) {
+      const objectUrl = URL.createObjectURL(file)
+      setUrl(objectUrl)
+      return () => { URL.revokeObjectURL(objectUrl); setUrl(null) }
+    }
+
+    let objectUrl = null
+    let cancelled = false
+    const body = new FormData()
+    body.append('file', file)
+
+    fetch('/api/document', { method: 'POST', body })
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(String(res.status)))))
+      .then((blob) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setUrl(objectUrl)
+      })
+      .catch(() => { if (!cancelled) setError('This PDF could not be prepared for viewing.') })
+
     return () => {
-      URL.revokeObjectURL(objectUrl)
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
       setUrl(null)
     }
   }, [file])
@@ -81,13 +110,15 @@ export default function Lightbox({ file, onClose }) {
       >
         <header className="lightbox__bar">
           <span className="lightbox__name" title={file.name}>{file.name}</span>
-          <a href={url || undefined} target="_blank" rel="noreferrer">Open in a new tab</a>
+          {url && <a href={url} target="_blank" rel="noreferrer">Open in a new tab</a>}
           <button type="button" ref={closeRef} onClick={onClose} className="lightbox__close">
             Close<span className="sr-only"> full size view</span>
           </button>
         </header>
 
         <div className="lightbox__body">
+          {error && <p className="lightbox__fallback" role="alert">{error}</p>}
+          {!url && !error && <p className="lightbox__fallback">Preparing {file.name}…</p>}
           {url && (isPdf(file) ? (
             <object data={url} type="application/pdf" aria-label={`Document: ${file.name}`}>
               <p className="lightbox__fallback">

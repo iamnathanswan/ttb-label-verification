@@ -16,7 +16,8 @@ FedRAMP artefacts. Marcus: *"for a prototype? Just don't do anything crazy."*
 | 3 | Unauthenticated endpoint spends API credit | **Medium** | **Accepted, mitigated.** Authentication is out of scope for the prototype. A sliding-window ceiling per client bounds spend, upload size is capped, and batch size is capped. |
 | 4 | Rate-limit key trusts `X-Forwarded-For` | **Low** | **Accepted.** The platform sets this header and it is the only client identity available behind its proxy. A determined caller can rotate it; the upload and batch caps remain. Worth revisiting behind a gateway that provides authenticated identity. |
 | 5 | Rate limiter is in-process | **Low** | **Accepted.** One container is the whole deployment. A shared store would add a dependency and its failure modes for no benefit at this scale. |
-| 6 | Prompt injection via label text | **Low** | **Mitigated by architecture.** Text on a label cannot change a verdict: the model only transcribes, and every determination is a pure function over the transcription (D2). The worst case is a misread field, which is what human review is for. |
+| 6 | Active content in an uploaded PDF | **Medium** | **Fixed.** PDF is not a passive format: a document can carry JavaScript that Chrome's PDFium, Firefox's pdf.js and Acrobat all execute on open without prompting. The enlarged view hands documents to that viewer, and the documents come from applicants. Scripts, embedded attachments and link actions are stripped server-side before display, and the response is served `Content-Security-Policy: sandbox` with `nosniff`. Form field values are preserved — blanking them would defeat the purpose of showing the form. |
+| 7 | Prompt injection via label text | **Low** | **Mitigated by architecture.** Text on a label cannot change a verdict: the model only transcribes, and every determination is a pure function over the transcription (D2). The worst case is a misread field, which is what human review is for. |
 
 ## Verified clean
 
@@ -31,3 +32,11 @@ FedRAMP artefacts. Marcus: *"for a prototype? Just don't do anything crazy."*
 `tests/test_load.py` holds the bomb rejection and the realistic-photograph
 acceptance, so the ceiling cannot be tightened into uselessness or removed
 without a test failing.
+
+`tests/test_sanitize.py` covers finding 6, and its first test asserts that the
+*fixture still carries a script*. Without that, every other assertion in the file
+would keep passing against a form that had nothing left to strip. The same test
+caught a real defect while being written: the form's script sits in a Flate
+stream, so the obvious `b"app.alert" in pdf` check is False even for the untouched
+original, and a suite built on it would have proved nothing. The assertions run
+against decompressed object streams instead.
