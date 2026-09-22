@@ -210,6 +210,131 @@ Advisories are shown under their own heading, clearly marked.
 
 ---
 
+## Technical choices, and why
+
+The brief says it is judging *appropriate technical choices for the scope*, so here is the
+reasoning rather than just the stack. Decisions are tabulated as D1–D9 in `docs/plan.md`;
+this is the prose.
+
+### Python and FastAPI
+
+The work this service does is image handling, PDF form reading, and one model call.
+Pillow, PyMuPDF and the Anthropic SDK are all first-class in Python and would have been
+bindings or subprocesses anywhere else. FastAPI adds two things that mattered here rather
+than in general: **Pydantic models are the schema**, so `LabelFields` is simultaneously the
+extraction contract, the validation boundary and the API response shape — declared once,
+which is why a field cannot drift between them — and **native async**, which the batch
+fan-out depends on, since three hundred labels are I/O-bound on one API and a
+`Semaphore` over `asyncio` is the whole implementation.
+
+*Rejected:* Flask, which would have meant adding an async story and a serialisation layer
+to reach the same place. Node for the whole stack, which would have put PDF form reading on
+weaker libraries — `pymupdf`'s AcroForm access is the reason the application is read
+exactly rather than by model.
+
+### React, built and served by the API
+
+One screen with streaming results and expandable findings is state that would be awkward in
+templates and trivial in components. Vite compiles it to static files that FastAPI serves
+directly.
+
+**This is one service, not two** (D1). The deliverable is *a* URL. A split deployment would
+have meant CORS, two things to deploy, two things to fail, and a second origin to explain —
+for a prototype nobody will scale independently. Everything the browser needs comes from the
+same origin, which also removes a class of security question.
+
+*Rejected:* Next.js or any SSR framework — there is nothing to server-render and it would
+have added a second runtime to the container. A server-rendered template stack — the
+streaming batch view is genuinely interactive.
+
+### Claude Sonnet 5
+
+Chosen by measurement against a binding requirement, not by preference or cost. Opus 5 was
+the plan of record and missed the ~5 s budget at **5,590 ms**. Sonnet 5 meets it at
+**p50 4,185 ms** with identical accuracy on the fixtures that discriminate — the typographic
+ones, where a wrong answer flips a verdict. Cost came out at `$0.0121` per label, which is a
+rounding error against the review time it assists, so it was never the deciding factor.
+Configurable via `ANTHROPIC_MODEL`; the measurements are in `docs/perf.md`.
+
+The model is also *deliberately small in scope*: it transcribes, and code judges (D2). That
+is what makes a wrong model output a misread field rather than a wrong verdict.
+
+### Docker, and Railway
+
+The Dockerfile is a two-stage build — Node compiles the bundle, then a `python:3.12-slim`
+runtime serves it. It is the deployment artifact and also what you can run locally, so
+"works on my machine" and "works in production" are the same image.
+
+**Railway is the least interesting decision here, and deliberately so.** It takes a
+Dockerfile, injects `$PORT`, and gives an HTTPS URL. It was chosen because an account
+already existed and was funded, and because nothing about this prototype needs more than
+that. Any container host — Render, Fly, Cloud Run, App Service — would serve identically. The
+entire coupling is three things, none of them deep: `railway.json`, which says *build the
+Dockerfile* and *health-check `/api/health`*; reading `$PORT`, which every container host
+sets; and preferring `RAILWAY_GIT_COMMIT_SHA` when stamping the running revision onto
+`/api/health`, which falls back to `GIT_COMMIT` and `SOURCE_COMMIT`. No platform SDK, no
+managed service, no build step that only works there.
+
+That portability is the point rather than an accident, for the reason below.
+
+---
+
+## The production path: Azure, FedRAMP, and the firewall
+
+Marcus raised two constraints that do not bind this prototype but would bind a real
+deployment, and conflating those two things would be the easy mistake.
+
+**"Our network blocks outbound traffic to a lot of domains."** During the scanning vendor
+pilot, half the features failed because the firewall blocked their ML endpoints. That
+happened because the vendor's product called out *from inside* TTB's network. This tool
+does not: an agent's browser makes one outbound connection, to this HTTPS URL, and the
+inference call is made by the application host. The firewall governs traffic leaving TTB;
+this traffic leaves a container elsewhere. As a prototype reviewers open in a browser, the
+constraint genuinely does not apply.
+
+**It absolutely applies in production**, and the remedy is not a firewall exception. Asking
+a federal network to allow-list a commercial API endpoint is the request that gets refused,
+and should be. The remedy is moving inference inside the trust boundary.
+
+**Azure is the natural target.** TTB migrated in 2019, and FedRAMP authorisation is the gate
+Marcus described as eighteen months of paperwork — which is an argument for landing inside
+an already-authorised boundary rather than establishing a new one. Concretely that means
+Claude on a FedRAMP-authorised Azure deployment, called from a service running in TTB's own
+subscription, with no egress to the public internet.
+
+**The architecture is already arranged for that**, and it is one of the few decisions taken
+on day one specifically for a constraint the prototype does not have:
+
+```python
+class ExtractionProvider(ABC):
+    async def extract(self, image_bytes, media_type) -> tuple[LabelFields, dict[str, int]]: ...
+    async def extract_application(self, image_bytes, media_type) -> ApplicationFields: ...
+```
+
+Two methods, and that is the whole interface. `AnthropicProvider` implements it,
+`StubProvider` backs the test suite, and an `AzureProvider` would be a third — **a
+constructor change, not a rewrite**. Nothing else in the codebase knows a model exists.
+
+This is enforced rather than intended: `tests/test_provider_seam.py` walks every source file
+and fails if anything outside `app/providers/` imports the vendor SDK. The seam cannot rot
+quietly, because the build breaks when it does.
+
+Two further properties make that migration smaller than it sounds:
+
+- **Every compliance determination is already deterministic** (D2). Swapping the model
+  changes what is transcribed, never how a rule is decided, so the regulatory logic needs no
+  revalidation — the 200 tests run with no network and no key.
+- **Nothing is persisted** (D7, `OPS-01`). Uploads live in memory for the request. There is
+  no data store to migrate, no retention policy to write, and no PII at rest to assess —
+  which removes most of what makes a federal authorisation slow.
+
+**What is honestly not done:** no FedRAMP artifacts, no ATO package, no Azure deployment
+exists. Those were out of scope for a prototype (`docs/requirements.md` §I) and claiming
+otherwise would be the kind of thing that does not survive questioning. What is done is
+making sure the prototype has not foreclosed the path.
+
+---
+
 ## How this was built
 
 Specification first, and deliberately: the brief's requirements are spread across four
@@ -313,17 +438,11 @@ warning text]". Taken from 27 CFR §16.21 as published by the GPO, embedded as a
 constant with the citation inline.
 
 **Is an external model API acceptable, given the firewall?** Marcus reports that outbound
-traffic to many domains is blocked. That constraint does not bind this prototype, and the
-reason matters: it governs traffic leaving TTB's network, while this runs outside it — an
-agent's browser makes one connection, to this URL, and the inference call is made by the
-application host. The scanning vendor failed because its product called ML endpoints *from
-inside* the network.
-
-It would bind a production deployment. There the remedy is not a firewall exception but
-moving inference inside the trust boundary; TTB migrated to Azure in 2019, so
-Azure-hosted inference is the natural path. That is why the SDK is reachable only through
-`ExtractionProvider` — switching is a constructor change, and a test asserts nothing
-outside `app/providers/` imports it.
+traffic to many domains is blocked. It does not bind this prototype — the constraint governs
+traffic leaving TTB's network, and this runs outside it — but it would bind production, where
+the remedy is Azure-hosted inference rather than a firewall exception. That is why the SDK is
+reachable only through `ExtractionProvider`. Worked through in full under
+[The production path](#the-production-path-azure-fedramp-and-the-firewall).
 
 ---
 
@@ -417,6 +536,8 @@ Python 3.12 · FastAPI · Pydantic · Pillow · PyMuPDF · pytest · ruff
 React 18 · Vite · vitest
 Docker → Railway · GitHub Actions
 Claude Sonnet 5 for extraction
+
+Why each of those, rather than the alternatives: [Technical choices](#technical-choices-and-why).
 
 Development was AI-assisted throughout, using Claude Code. `CLAUDE.md` is the working
 agreement that kept it on spec — the architectural invariant, the hard constraints, and
