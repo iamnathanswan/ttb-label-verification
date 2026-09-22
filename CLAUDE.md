@@ -107,6 +107,11 @@ compressed stream: searching the raw bytes for `app.alert` returns False even fo
 the untouched original, so assert against decompressed objects or the test proves
 nothing.
 
+**One of each proves nothing about pairing.** `pair` short-circuits on `SOLE_PAIR`
+when there is a single label and a single application, so any test built that way
+exercises the wiring and never a strategy. Discrimination is tested by
+`verify_pairs.py --batch` and by the mixed-batch tests in `test_api.py`.
+
 **The serial number cannot pair by content.** It identifies an application (field 4) but
 is never printed on a label, so pairing works from filenames and, failing that, an
 unambiguous brand. Two candidates is a question, not a pair — `app/pairing.py` reports
@@ -197,6 +202,8 @@ python scripts/batch_load.py \
   --url $DEPLOYED --count 300 --yes      # real batch throughput; spends API credit
 python scripts/verify_corpus.py \
   --url $DEPLOYED --markdown docs/verification.md   # regenerate the evidence
+python scripts/verify_pairs.py --url $DEPLOYED       # one pair at a time: the comparison
+python scripts/verify_pairs.py --url $DEPLOYED --batch   # all at once: the matching
 python scripts/gen_traceability.py       # rebuild the coverage matrix
 python scripts/gen_traceability.py --check   # fail if a requirement has no test
 cd web && npm test                       # frontend tests

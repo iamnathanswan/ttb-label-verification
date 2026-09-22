@@ -204,6 +204,70 @@ def test_batch_pairs_applications_to_labels(client, label_bytes):
     assert result["application"]["serial_number"] == "24-0417"
 
 
+def test_a_mixed_batch_pairs_each_label_to_its_own_application(client, label_bytes):
+    """MCH-10 — the case the single-pair tests cannot reach.
+
+    With one of each, `pair` short-circuits on SOLE_PAIR and never consults a
+    filename, so every earlier batch test proved only that the wiring exists. Here
+    five applications with distinct serials are shuffled against five labels named
+    by serial, and each must find its own — which is the discrimination an agent
+    relies on when an importer sends three hundred at once.
+
+    The same image stands in for every label because extraction is stubbed; what is
+    under test is pairing, and that works from filenames and the values read out of
+    each application's own AcroForm.
+    """
+    serials = ["24-0417", "24-0418", "24-0419", "24-0420", "24-0421"]
+    names = {
+        "24-0417": "24-0417-application.pdf",
+        "24-0418": "24-0418-application-case-differs.pdf",
+        "24-0419": "24-0419-application-wrong-brand.pdf",
+        "24-0420": "24-0420-application-imported.pdf",
+        "24-0421": "24-0421-application-wine.pdf",
+    }
+
+    files = [("files", (f"{s}_label.png", label_bytes, "image/png")) for s in serials]
+    # Deliberately not in the same order as the labels: a pairing that only works
+    # when the two lists happen to line up is an index, not a match.
+    for serial in reversed(serials):
+        files.append(("applications", (names[serial], (APPLICATIONS / names[serial]).read_bytes(), "application/pdf")))
+
+    events = _events(client.post("/api/verify/batch", files=files).text)
+    results = [p for n, p in events if n == "result"]
+    assert len(results) == len(serials)
+
+    paired = {r["filename"]: r for r in results}
+    for serial in serials:
+        result = paired[f"{serial}_label.png"]
+        assert result["application"] is not None, f"{serial} lost its application"
+        assert result["application"]["serial_number"] == serial, (
+            f"{serial}_label.png paired to {result['application']['serial_number']}"
+        )
+        assert result["pairing"]["rule"] == "serial_in_filename"
+        assert result["pairing"]["application_filename"] == names[serial]
+
+
+def test_a_mixed_batch_never_reuses_one_application(client, label_bytes):
+    """Two labels must not both claim the same application (MCH-10).
+
+    Silently pairing one application to several labels would report agreement that
+    was never checked, which is the failure mode worth guarding: a wrong pair reads
+    exactly like a right one.
+    """
+    application = (APPLICATIONS / "24-0417-application.pdf").read_bytes()
+    files = [
+        ("files", ("24-0417_label.png", label_bytes, "image/png")),
+        ("files", ("24-0417_label_copy.png", label_bytes, "image/png")),
+        ("applications", ("24-0417-application.pdf", application, "application/pdf")),
+    ]
+    results = [p for n, p in _events(client.post("/api/verify/batch", files=files).text) if n == "result"]
+    claimed = [r for r in results if r["application"] is not None]
+    assert len(claimed) == 1, "one application was handed to more than one label"
+    unpaired = [r for r in results if r["application"] is None]
+    assert unpaired and unpaired[0]["pairing"]["rule"] == "unpaired"
+    assert "Only the regulations were checked" in unpaired[0]["pairing"]["detail"]
+
+
 def test_an_application_with_no_label_is_reported(client, label_bytes):
     """An orphan must be surfaced, never silently discarded."""
     orphan = (APPLICATIONS / "24-0423-application-orphan.pdf").read_bytes()
