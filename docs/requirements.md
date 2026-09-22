@@ -71,7 +71,7 @@ rather than hidden.
 |---|---|---|---|
 | MCH-01 | Compare extracted label values against expected application values, field by field | Sarah: *"checks that what's on the label matches what's in the application"* | Binding |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce a hard failure | Dave: *"'STONE'S THROW' on the label but 'Stone's Throw' in the application... it's obviously the same thing. You need judgment."* | Binding |
-| MCH-03 | ABV within **±0.3 percentage points** is a match | §5.65(c) | Derived |
+| MCH-03 | ABV and net contents are **not** compared against the application — neither is a field on TTB F 5100.31 | §5.65(c) governs laboratory-measured content against the label, not application against label | Derived |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a bare boolean | Dave: *"there's nuance. You can't just pattern match everything."* | Assumption |
 | MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a plain-language reason | Dave: *"Just don't make my life harder in the process."* | Assumption |
 | MCH-06 | An application is **optional**; with none supplied the tool still runs §B compliance checks | Resolves the ambiguity in §J-1 | Assumption |

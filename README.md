@@ -353,6 +353,7 @@ docs/
   verification.md    corpus results (generated)
   traceability.md    requirement → implementation → test (generated)
   security.md        findings and disposition
+  sources.md         every citation, linked to the regulation
 scripts/             benchmark · corpus verification · traceability
 ```
 

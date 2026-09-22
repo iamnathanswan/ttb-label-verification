@@ -17,6 +17,7 @@ Take-home assessment for IT Specialist (AI), Treasury Common Services Center.
 | `docs/plan.md` | Architecture, data contracts, decisions D1–D8, risks. |
 | `docs/tasks.md` | Seven phases, 45 tasks, each carrying its REQ IDs. |
 | `docs/traceability.md` | Coverage matrix. Generated — never edit by hand. |
+| `docs/sources.md` | Every citation with a link to the regulation, for checking the rules against the text. |
 | `docs/security.md` | Security review findings and what was accepted. |
 | `docs/perf.md` | Measured latency against PRF-01, and what was tried. |
 | `docs/verification.md` | Corpus results. Generated — never edit by hand. |

@@ -22,7 +22,7 @@ and the submission itself.
 | EXT-06 | Extract country of origin when present | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
 | EXT-07 | Extract government warning statement verbatim, preserving case | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
 | EXT-08 | Report a per-field confidence signal, so low-confidence reads r… | `app/models.py`<br>`app/providers/anthropic_provider.py` | `test_models.py` | test |
-| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | `app/providers/anthropic_provider.py`<br>`app/rules/engine.py` | `test_ingest.py` | test |
+| EXT-09 | Tolerate imperfect captures: off-angle, poor lighting, glare | `app/providers/anthropic_provider.py`<br>`app/rules/engine.py` | `test_ingest.py`<br>`test_models.py` | test |
 | EXT-10 | Accept common image formats plus PDF | `app/ingest.py` | `test_ingest.py` | test |
 | VAL-01 | Warning text must match §16.21 exactly, word for word, after wh… | `app/providers/anthropic_provider.py`<br>`app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_warning.py` | test |
 | VAL-02 | `GOVERNMENT WARNING` must appear in capital letters | `app/rules/warning.py` | `generate_labels.py`<br>`test_models.py`<br>`test_rules_warning.py`<br>`csv.test.js` | test |
@@ -38,9 +38,9 @@ and the submission itself.
 | VAL-12 | Producer name must be preceded by a function phrase — "bottled… | `app/rules/engine.py`<br>`app/rules/fields.py` | `generate_labels.py`<br>`test_rules_engine.py`<br>`test_rules_fields.py` | test |
 | VAL-13 | Country of origin required for imported products | `app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py`<br>`web/src/components/Comparison.jsx` | `generate_applications.py`<br>`generate_labels.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
 | VAL-14 | Flag missing mandatory fields individually rather than as one a… | `app/models.py`<br>`app/rules/engine.py`<br>`app/rules/fields.py`<br>`app/rules/match.py` | `test_review_regressions.py`<br>`test_rules_fields.py`<br>`test_rules_match.py` | test |
-| MCH-01 | Compare extracted label values against expected application val… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_rules_match.py` | test |
+| MCH-01 | Compare extracted label values against expected application val… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_match.py` | test |
 | MCH-02 | Case, punctuation, and whitespace differences must not produce… | — | `test_rules_match.py` | test |
-| MCH-03 | ABV within ±0.3 percentage points is a match | `app/rules/constants.py` | `test_rules_match.py` | test |
+| MCH-03 | ABV and net contents are not compared against the application —… | `app/rules/constants.py` | `test_rules_match.py` | test |
 | MCH-04 | Results are three-state — `PASS` / `REVIEW` / `FAIL` — never a… | `app/models.py` | `test_rules_match.py` | test |
 | MCH-05 | Every `REVIEW` and `FAIL` shows both values side by side plus a… | — | `test_rules_match.py` | test |
 | MCH-06 | An application is optional; with none supplied the tool still r… | `app/rules/engine.py`<br>`app/rules/match.py` | `test_api.py`<br>`test_models.py`<br>`test_rules_engine.py`<br>`test_rules_match.py` | test |
@@ -48,7 +48,7 @@ and the submission itself.
 | MCH-08 | Read the application from its form fields where possible; fall… | `app/extract_application.py` | `test_application_extraction.py` | test |
 | MCH-09 | Report how the application was read, so an agent can weigh the… | `app/extract_application.py`<br>`web/src/components/Comparison.jsx` | `test_application_extraction.py` | test |
 | MCH-10 | Pair labels to applications without guessing; report anything u… | `app/pairing.py` | `test_pairing.py` | test |
-| MCH-11 | Show the source documents beside the findings | `web/src/components/Documents.jsx` | `capture_screenshots.py` | measured |
+| MCH-11 | Show the source documents beside the findings | — | `capture_screenshots.py` | measured |
 | PRF-01 | Single label returns results in ≈5 seconds | `app/config.py`<br>`app/ingest.py`<br>`app/providers/anthropic_provider.py` | `benchmark.py` | measured |
 | PRF-02 | Batch streams results as each label completes; first result vis… | `app/api.py`<br>`app/batch.py`<br>`web/src/lib/sse.js` | `test_load.py` | test |
 | PRF-03 | Measured elapsed time displayed per label | `app/models.py` | `benchmark.py` | measured |
@@ -65,6 +65,7 @@ and the submission itself.
 | OPS-04 | No secrets in client code or repository | — | `test_secrets.py` | test |
 | OPS-05 | Rate limiting and upload size caps on the public URL | `app/config.py`<br>`app/limits.py` | `test_api.py`<br>`test_load.py` | test |
 | OPS-06 | Standalone — no COLA integration | — | `gen_traceability.py` | measured |
+| OPS-07 | Uploaded documents are stripped of executable content before di… | `app/api.py`<br>`app/sanitize.py`<br>`web/src/components/Lightbox.jsx` | `test_sanitize.py` | test |
 | DEL-01 | Public source repository with all source code | — | — | deliverable |
 | DEL-02 | README with setup and run instructions | — | — | deliverable |
 | DEL-03 | Documentation of approach, tools used, assumptions made | — | — | deliverable |
@@ -78,4 +79,4 @@ and the submission itself.
 | OOS-05 | Formula approval, ingredient, or allergen review | — | — | out of scope |
 | OOS-06 | Full wine (Part 4) and malt beverage (Part 7) rule sets | — | — | out of scope |
 
-**46** verified by automated test · **5** by recorded measurement (`docs/perf.md`, `docs/verification.md`) · **6** satisfied by the deliverable itself, of 57 buildable requirements.
+**47** verified by automated test · **5** by recorded measurement (`docs/perf.md`, `docs/verification.md`) · **6** satisfied by the deliverable itself, of 58 buildable requirements.

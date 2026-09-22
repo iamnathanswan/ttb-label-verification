@@ -44,8 +44,11 @@ TYPE_SIZE_BRACKETS_ML: Final = (
 MAX_CHARS_PER_INCH: Final = {1.0: 40, 2.0: 25, 3.0: 12}
 
 # --- 27 CFR 5.65(c) — tolerance between stated and actual alcohol content ----
-# Governs label-versus-application comparison (MCH-03). It is not permission to
-# round a stated value, nor to accept a missing one.
+# Recorded, deliberately unused (MCH-03). The tolerance governs laboratory-measured
+# content against the label; it is not a tolerance for comparing an application
+# against a label, and TTB F 5100.31 states no alcohol content to compare anyway.
+# Kept because "why is there no ABV tolerance?" is a question a reviewer will ask,
+# and the answer belongs next to the citation.
 ABV_TOLERANCE_POINTS: Final = 0.3
 
 # --- 27 CFR 5.66(b) — the producer name must be preceded by a function phrase -

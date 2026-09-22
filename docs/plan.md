@@ -148,8 +148,10 @@ rather than quietly fudged.
 
 **Matching.** `MCH-02` normalises case, punctuation, whitespace, and diacritics before
 comparison; an exact match is `PASS`, a normalisation-only difference is `REVIEW` with both
-values shown, anything else is `FAIL`. `MCH-03` applies the §5.65(c) ±0.3 percentage-point
-tolerance to ABV. Three states throughout (`MCH-04`); never a bare boolean.
+values shown, anything else is `FAIL`. `MCH-03` records that ABV and net contents are
+*not* compared: neither is a field on TTB F 5100.31, and §5.65(c)'s ±0.3 percentage-point
+tolerance governs laboratory-measured content against the label rather than the application
+against the label. Three states throughout (`MCH-04`); never a bare boolean.
 
 ## 6. Batch and streaming
 
