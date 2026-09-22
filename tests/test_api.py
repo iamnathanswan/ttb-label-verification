@@ -225,3 +225,50 @@ def test_batch_over_the_file_ceiling_is_refused(client, label_bytes, monkeypatch
     r = client.post("/api/verify/batch", files=files)
     assert r.status_code == 413
     assert "limit is 2" in r.json()["detail"]
+
+
+# --- previews -----------------------------------------------------------------
+
+
+def test_preview_renders_an_image_thumbnail(client, label_bytes):
+    r = client.post("/api/preview", files={"file": ("label.png", label_bytes, "image/png")})
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/jpeg"
+    assert len(r.content) > 0
+
+
+def test_preview_rasterises_a_pdf_the_browser_cannot_show(client, application_bytes):
+    """The point of the endpoint: a browser cannot thumbnail a PDF unaided."""
+    r = client.post(
+        "/api/preview",
+        files={"file": ("cola.pdf", application_bytes, "application/pdf")},
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/jpeg"
+
+
+def test_preview_is_smaller_than_the_extraction_image():
+    """A thumbnail should not cost what a full-size render costs."""
+    from app.api import PREVIEW_EDGE_PX
+    from app.config import settings
+
+    assert settings.max_image_edge_px > PREVIEW_EDGE_PX
+
+
+def test_preview_rejects_something_that_is_not_a_document(client):
+    r = client.post("/api/preview", files={"file": ("x.png", b"not an image", "image/png")})
+    assert r.status_code == 400
+
+
+def test_preview_does_not_consume_the_extraction_rate_limit(client, label_bytes, monkeypatch):
+    """Looking at your own documents must not exhaust the budget for checking them."""
+    from app.limits import _limiter
+
+    before = sum(len(hits) for hits in _limiter._hits.values())
+    for _ in range(5):
+        client.post("/api/preview", files={"file": ("l.png", label_bytes, "image/png")})
+    assert sum(len(hits) for hits in _limiter._hits.values()) == before
+
+
+def test_config_tells_the_interface_when_to_stop_previewing(client):
+    assert client.get("/api/config").json()["preview_limit"] > 0

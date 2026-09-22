@@ -17,7 +17,7 @@ export default function App() {
   const [run, setRun] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
   const [fatal, setFatal] = useState(null)
-  const [limits, setLimits] = useState({ max_batch_files: 300 })
+  const [limits, setLimits] = useState({ max_batch_files: 300, preview_limit: 6 })
   const resultsRef = useRef(null)
 
   useEffect(() => {
@@ -89,7 +89,6 @@ export default function App() {
   // Worst first: an agent works the rejections, not the passes.
   const order = { FAIL: 0, REVIEW: 1, PASS: 2 }
   const sorted = [...results].sort((a, b) => order[a.overall] - order[b.overall])
-  const fileFor = (list, name) => list.find((f) => f.name === name)
 
   return (
     <>
@@ -116,6 +115,7 @@ export default function App() {
               onRemove={(file) => setLabels((c) => c.filter((f) => !same(f, file)))}
               disabled={busy}
               dragging={dragging}
+              previewLimit={limits.preview_limit}
             />
             <DropZone
               id="application-files"
@@ -127,6 +127,7 @@ export default function App() {
               onRemove={(file) => setApplications((c) => c.filter((f) => !same(f, file)))}
               disabled={busy}
               dragging={dragging}
+              previewLimit={limits.preview_limit}
             />
           </div>
 
@@ -193,13 +194,7 @@ export default function App() {
           {/* The worst result opens on arrival so an agent sees a finding
               immediately; the rest stay collapsed to keep a 300-label run scannable. */}
           {sorted.map((r, i) => (
-            <ResultCard
-              key={r.filename}
-              result={r}
-              defaultOpen={i === 0}
-              labelFile={fileFor(labels, r.filename)}
-              applicationFile={fileFor(applications, r.pairing?.application_filename)}
-            />
+            <ResultCard key={r.filename} result={r} defaultOpen={i === 0} />
           ))}
         </section>
       </main>

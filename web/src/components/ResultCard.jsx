@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Comparison from './Comparison.jsx'
-import Documents from './Documents.jsx'
 
 const ICON = { PASS: '✓', REVIEW: '!', FAIL: '✕' }
 const WORD = { PASS: 'Passed', REVIEW: 'Needs review', FAIL: 'Failed' }
@@ -39,7 +38,7 @@ function Check({ check }) {
   )
 }
 
-export default function ResultCard({ result, defaultOpen, labelFile, applicationFile }) {
+export default function ResultCard({ result, defaultOpen }) {
   const [open, setOpen] = useState(Boolean(defaultOpen))
 
   // Two different questions, answered differently. Compliance asks whether the
@@ -132,7 +131,6 @@ export default function ResultCard({ result, defaultOpen, labelFile, application
             </section>
           )}
 
-          <Documents labelFile={labelFile} applicationFile={applicationFile} />
         </div>
       )}
     </article>

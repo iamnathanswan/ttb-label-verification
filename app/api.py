@@ -12,7 +12,7 @@ a tool that asks them to type the application values would be adding to that.
 import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from app.batch import LabelUpload, stream_batch, verify_one
@@ -25,6 +25,11 @@ from app.pairing import Candidate, pair
 from app.providers.base import ExtractionError, ExtractionProvider
 
 router = APIRouter(prefix="/api")
+
+PREVIEW_EDGE_PX = 480
+# Beyond a handful, thumbnails stop helping and start costing an upload each. A
+# peak-season batch is reviewed through its results, not its input.
+PREVIEW_LIMIT = 6
 
 
 class UploadTooLarge(Exception):
@@ -195,6 +200,38 @@ async def verify_batch(
     )
 
 
+@router.post("/preview")
+async def preview(
+    request: Request,
+    file: Annotated[UploadFile, File(description="Document to render a thumbnail of")],
+) -> Response:
+    """Render the first page of a document as a small PNG.
+
+    So an agent can see what they dropped before spending a check on it. A browser
+    can show an image on its own, but not a PDF without a viewer or a library, and
+    the server already rasterises PDFs on the ingest path.
+
+    Deliberately outside the extraction rate limit: this costs a little CPU and no
+    inference, and counting it would let looking at your own documents exhaust the
+    budget for checking them. The upload cap still applies.
+    """
+    try:
+        content = await _read(file)
+    except UploadTooLarge as exc:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)) from exc
+
+    try:
+        image, _ = await asyncio.to_thread(prepare, content, max_edge=PREVIEW_EDGE_PX)
+    except UnsupportedUpload as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return Response(
+        content=image,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.get("/config")
 async def config() -> dict:
     """Limits the interface needs to know about before it lets someone upload."""
@@ -202,4 +239,5 @@ async def config() -> dict:
         "max_upload_bytes": settings.max_upload_bytes,
         "max_batch_files": settings.max_batch_files,
         "max_image_edge_px": settings.max_image_edge_px,
+        "preview_limit": PREVIEW_LIMIT,
     }
