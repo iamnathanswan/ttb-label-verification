@@ -89,22 +89,22 @@ model handed to the API as the structured-output format, so the schema is declar
 
 ```python
 class LabelFields(BaseModel):
-    brand_name: str = ""                  # EXT-01, VAL-14
-    class_type: str = ""                  # EXT-02, VAL-14
-    alcohol_content_pct: float | None     # VAL-11 — percent by volume
-    alcohol_content_proof: float | None   # optional in addition, never instead
-    net_contents_raw: str = ""            # parsed to mL by rules/units.py for VAL-08
+    brand_name: str = ""  # EXT-01, VAL-14
+    class_type: str = ""  # EXT-02, VAL-14
+    alcohol_content_pct: float | None  # VAL-11 — percent by volume
+    alcohol_content_proof: float | None  # optional in addition, never instead
+    net_contents_raw: str = ""  # parsed to mL by rules/units.py for VAL-08
     producer_name: str = ""
     producer_address: str = ""
-    producer_function_phrase: str = ""    # VAL-12 — "bottled by", "distilled by", ...
+    producer_function_phrase: str = ""  # VAL-12 — "bottled by", "distilled by", ...
     country_of_origin: str = ""
-    warning_text: str = ""                # verbatim, case preserved (EXT-07)
+    warning_text: str = ""  # verbatim, case preserved (EXT-07)
     warning_heading_is_caps: Observation  # VAL-02
     warning_heading_is_bold: Observation  # VAL-03
-    warning_body_is_bold: Observation     # VAL-04
-    warning_visually_separated: Observation          # VAL-05
-    warning_on_contrasting_background: Observation   # VAL-06
-    same_field_of_vision: Observation                # VAL-10
+    warning_body_is_bold: Observation  # VAL-04
+    warning_visually_separated: Observation  # VAL-05
+    warning_on_contrasting_background: Observation  # VAL-06
+    same_field_of_vision: Observation  # VAL-10
     beverage_type: BeverageType = "unknown"
     image_legible: bool = True
     illegible_reason: str = ""
